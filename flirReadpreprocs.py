@@ -17,6 +17,7 @@ minTemp = maxTemp = None                        # 溫度上下限
 palettes = [cm.gnuplot2]                        # 影像調色板
 
 imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
+savePath = r'sample\\plt_save'
 
 
 
@@ -43,11 +44,10 @@ def draw3D(flirObject, hotObject):
     fig = plt.figure()
     ax = Axes3D(fig)     #生成一個3d物件
 
-
-    ax.set_xlabel('image_X',color='r') #設定x座標
-    ax.set_ylabel('image_Y',color='r')
+    ax.set_xlabel('image_X')
+    ax.set_ylabel('image_Y')
     ax.set_zlabel('Thermal')
-    ax.plot_surface(X, Y, flirHot,rstride=1,cstride=1,cmap=plt.cm.gnuplot2)#生成一個曲面
+    ax.plot_surface(X, Y, flirHot,rstride=1,cstride=1,cmap=plt.cm.gnuplot2)                         # 生成一個曲面
 
     fig.tight_layout()
 
@@ -56,7 +56,7 @@ def draw3D(flirObject, hotObject):
 for path, dir_list, file_list in imgPath:  
     for file_name in file_list:                           
         hotPath = os.path.join(str(path), str(file_name))                                           # 熱影像路徑
-        pltSavepath = os.path.join(str('sample\\plt_save'), str(file_name.split('.')[0]+".jpg"))    # 輸出路徑
+        pltSavepath = os.path.join(str(savePath), str(file_name.split('.')[0]+".jpg"))    # 輸出路徑
 
 
         flir = flirimageextractor.FlirImageExtractor(palettes=palettes)                             # 熱影像轉換套件
@@ -125,10 +125,10 @@ for path, dir_list, file_list in imgPath:
 
             # fig.suptitle("Flir Image")
             fig.tight_layout()
-            # fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
-            # plt.close('all')
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
             plt.show()
         
-        draw3D(normalObject, hotObject)
+        # draw3D(normalObject, hotObject)
 
 
