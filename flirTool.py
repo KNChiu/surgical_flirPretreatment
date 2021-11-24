@@ -97,14 +97,15 @@ class FlirPretreatment():
         plt.contourf(X,Y,flirObject,8,alpha=0.75,cmap=plt.cm.gnuplot2)
         # add contour lines
 
-        C = plt.contour(X,Y,hotObject,8,color='black',lw=0.5)
+        # C = plt.contour(X,Y,hotObject,8,color='black',lw=0.5)
+        C = plt.contour(X,Y,hotObject,8)
         # 顯示各等高線的資料標籤cmap=plt.cm.hot
 
         plt.clabel(C,inline=True,fontsize=10)
 
-
         fig = plt.figure()
-        ax = Axes3D(fig)     #生成一個3d物件
+        ax = Axes3D(fig, auto_add_to_figure=False)   #生成一個3d物件
+        fig.add_axes(ax)
 
         ax.set_xlabel('image_X')
         ax.set_ylabel('image_Y')
