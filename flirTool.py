@@ -25,6 +25,15 @@ class FlirPretreatment():
         self.imgPath = imgPath
         self.savePath = savePath
         self.palettes = palettes
+        self.imgPathlist = self.getImglist()
+
+    def getImglist(self):
+        imgPathlist = []
+        for path, dir_list, file_list in self.imgPath: 
+            for file_name in file_list:
+                imgPathlist.append(os.path.join(str(path), str(file_name)))
+        
+        return imgPathlist
 
     def drawHist(self, flirHot, flirMean):
         print('mean :', flirMean)
@@ -74,7 +83,7 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
-    def draw3D(self, flirObject, hotObject, flirHot):
+    def draw3D(self, flirObject, hotObject, flirHot, pltSavepath):
         x_size = flirObject.shape[1]
         y_size =  flirObject.shape[0]
         x = np.linspace(0, x_size-1, x_size)
@@ -101,42 +110,49 @@ class FlirPretreatment():
         ax.set_ylabel('image_Y')
         ax.set_zlabel('Thermal')
         ax.plot_surface(X, Y, flirHot, rstride=1,cstride=1,cmap=plt.cm.gnuplot2)                         # 生成一個曲面
-        fig.tight_layout()
+        # fig.tight_layout()
+        if pltSavepath:
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
         plt.show()
 
     def main(self):
-        for path, dir_list, file_list in self.imgPath:  
-            for file_name in file_list:                           
-                hotPath = os.path.join(str(path), str(file_name))                                           # 熱影像路徑
-                pltSavepath = os.path.join(str(self.savePath), str(file_name.split('.')[0]+".jpg"))    # 輸出路徑
+        for imgPath in self.imgPathlist:
+            imgName = os.path.split(imgPath)[-1]
+            savePath = os.path.join(self.savePath, imgName)
 
 
-                flir = flirimageextractor.FlirImageExtractor(palettes=self.palettes)                             # 熱影像轉換套件
-                # print(hotPath)
-                flir.process_image(hotPath)       
-                flirRGB = flir.extract_embedded_image()                                                     # 輸出 RGB
-                flirHot = flir.get_thermal_np()                                                             # 輸出 1/2 大小熱影像資訊
 
-
-                autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))           # 標準化到 0~1 之間
+        # for file_list in self.imgPathlist:
+            # for file_name in file_list:                           
+            #     hotPath = os.path.join(str(path), str(file_name))                                           # 熱影像路徑
+            #     pltSavepath = os.path.join(str(self.savePath), str(file_name.split('.')[0]+".jpg"))    # 輸出路徑
             
 
-                print("MAX Thermal :", np.amax(flirHot))
-                print("MIN Thermal :", np.amin(flirHot))
+            flir = flirimageextractor.FlirImageExtractor(palettes=self.palettes)                             # 熱影像轉換套件
+            flir.process_image(imgPath)       
+            flirRGB = flir.extract_embedded_image()                                                     # 輸出 RGB
+            flirHot = flir.get_thermal_np()                                                             # 輸出 1/2 大小熱影像資訊
 
-                
-                flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均
-                ret, flimask = cv2.threshold(flirHot, flirMean, 255, cv2.THRESH_BINARY)                   # 產生遮罩
+            autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))           # 標準化到 0~1 之間
+            
 
-                normalObject = autoNormal.copy()                                                            # 二質化
-                normalObject[flimask < 255] = 0
+            print("MAX Thermal :", np.amax(flirHot))
+            print("MIN Thermal :", np.amin(flirHot))
 
-                hotObject = flirHot.copy()
-                hotObject[flimask < 255] = 0
+            
+            flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均
+            ret, flimask = cv2.threshold(flirHot, flirMean, 255, cv2.THRESH_BINARY)                   # 產生遮罩
 
-                self.drawHist(flirHot, flirMean)
-                self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-                self.draw3D(normalObject, hotObject, flirHot)
+            normalObject = autoNormal.copy()                                                            # 二質化
+            normalObject[flimask < 255] = 0
+
+            hotObject = flirHot.copy()
+            hotObject[flimask < 255] = 0
+
+            #     self.drawHist(flirHot, flirMean)
+            self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
+            self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
 
 
 if __name__ == '__main__':
