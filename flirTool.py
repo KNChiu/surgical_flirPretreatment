@@ -150,7 +150,7 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
-    def separateNP(self, imgPath):
+    def separateNP(self, imgPath):                                                  # 分離原始圖像與溫度影像
         flir = flirimageextractor.FlirImageExtractor(palettes=self.palettes)                       # 熱影像轉換套件
         flir.process_image(imgPath)       
         flirRGB = flir.extract_embedded_image()                                                     # 輸出 RGB
@@ -158,7 +158,7 @@ class FlirPretreatment():
         
         return flirRGB, flirHot
     
-    def makeMask(self, flirHot, autoNormal):
+    def makeMask(self, flirHot, autoNormal):                                        # 圈出溫差 N度內範圍 
         flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均
         ret, flimask = cv2.threshold(flirHot, flirMean, 255, cv2.THRESH_BINARY)                   # 產生遮罩
 
@@ -187,7 +187,7 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            self.drawFrame(flirRGB, flirHot, flimask, thermalRange = 4, pltSavepath=savePath)       # 圈出溫差 N度內範圍 
+            self.drawFrame(flirRGB, flirHot, flimask, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
             # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
 
 
