@@ -36,13 +36,11 @@ def drawPLT(img, title, pltSavepath):
     plt.show()
 
 
-
 if __name__ == '__main__':
     palettes = [cm.gnuplot2]                        # 影像調色板
     imgPath = os.walk(r'sample\all_information')   # 輸入路徑
     # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
     savePath = r'sample\\frame_save\\等溫線圖'
-    
 
     flir = FlirPretreatment(imgPath, savePath, palettes)
     for imgPath in flir.imgPathlist:
