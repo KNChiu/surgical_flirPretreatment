@@ -17,7 +17,7 @@ minTemp = maxTemp = None                        # 溫度上下限
 palettes = [cm.gnuplot2]                        # 影像調色板
 
 imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
-savePath = r'sample\\plt_save'
+savePath = r'sample\frame_save'
 
 
 
@@ -129,6 +129,6 @@ for path, dir_list, file_list in imgPath:
             plt.close('all')
             plt.show()
         
-        # draw3D(normalObject, hotObject)
+        draw3D(normalObject, hotObject)
 
 
