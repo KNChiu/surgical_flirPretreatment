@@ -6,18 +6,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os 
 import cv2
-import numpy as np
-import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 
-drawHist = False                                # 畫出直方圖
-drawMask = True                                # 劃出遮罩
+# drawHist = False                                # 畫出直方圖
+# drawMask = True                                # 劃出遮罩
 
-minTemp = maxTemp = None                        # 溫度上下限
-palettes = [cm.gnuplot2]                        # 影像調色板
+# minTemp = maxTemp = None                        # 溫度上下限
 
-imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
-savePath = r'sample\\frame_save'
 
 
 class FlirPretreatment():
@@ -50,12 +45,12 @@ class FlirPretreatment():
                         'pad':10}
         )
 
-        plt.hist(flirHot)
+        plt.hist(flirHot, 35, [15, 35])     # 繪製直線圖
         plt.xlim([15, 35])
         plt.ylim([0, 500])
         plt.vlines(flirMean, 1, 400, color="red")                          
         plt.show()
-        plt.close('all')
+        # plt.close('all')
 
     def drawMask(self, flirRGB, flirHot, flimask, normalObject, pltSavepath):       # 畫出患者範圍
         fig = plt.figure()
@@ -84,34 +79,38 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
-    def drawFrame(self, flirRGB, flirHot, flimask, thermalRange, pltSavepath):      # 圈出溫差範圍
-        flirframe = flirHot.copy()
-        flirframe[flirframe < np.amax(flirHot) - thermalRange] = 0         
-        flirframe[flirframe >= np.amax(flirHot) - thermalRange] = 255
+    def drawFrame(self, flirRGB, flirHot, normalObject, thermalRange, pltSavepath):      # 圈出溫差範圍
+
+        # flirHot[flimask < 255] = 0
+
+        flirframe = normalObject.copy()
+        flirframe[flirHot < np.amax(flirHot) - thermalRange] = 0         
 
 
         fig = plt.figure()
-        subplot1=fig.add_subplot(1, 4, 1)
+        subplot1=fig.add_subplot(1, 3, 1)
         subplot1.imshow(flirRGB)
         subplot1.set_title("RGB image")
 
-        subplot2=fig.add_subplot(1, 4, 2)
-        subplot2.imshow(flirHot, cmap=cm.gnuplot2)
+        subplot2=fig.add_subplot(1, 3, 2)
+        subplot2.imshow(normalObject, cmap=cm.gnuplot2)
         subplot2.set_title("Flir image")
 
-        subplot3=fig.add_subplot(1, 4, 3)
-        subplot3.imshow(flimask)
-        subplot3.set_title("Thresh Mask")
+        subplot3=fig.add_subplot(1, 3, 3)
+        subplot3.imshow(flirframe, cmap=cm.gnuplot2)
+        subplot3.set_title("Flir Frame - "+ str(thermalRange))
 
-        subplot4=fig.add_subplot(1, 4, 4)
-        subplot4.imshow(flirframe, cmap=cm.gnuplot2)
-        subplot4.set_title("Flir Frame")
+        # subplot4=fig.add_subplot(1, 4, 4)
+        # subplot4.imshow(normalObject-flirframe, cmap=cm.gnuplot2)
+        # subplot4.set_title("Flir Frame XOR")
 
-        figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
+
+        figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MEAN Thermal :"+ str(round(np.mean(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
         fig.suptitle(figTitle)
         fig.tight_layout()
 
         if pltSavepath:
+            print("save at:"+ str(pltSavepath))
             fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
             plt.close('all')
         plt.show()
@@ -127,7 +126,7 @@ class FlirPretreatment():
         # Z = flirHot
 
         # 填充顏色
-        plt.contourf(X,Y,flirObject,8,alpha=0.75,cmap=plt.cm.gnuplot2)
+        plt.contourf(X, Y, flirObject, 8, alpha = 0.75, cmap = plt.cm.gnuplot2)
         # add contour lines
 
         # C = plt.contour(X,Y,hotObject,8,color='black',lw=0.5)
@@ -143,10 +142,10 @@ class FlirPretreatment():
         ax.set_xlabel('image_X')
         ax.set_ylabel('image_Y')
         ax.set_zlabel('Thermal')
-        ax.plot_surface(X, Y, flirHot, rstride=1,cstride=1,cmap=plt.cm.gnuplot2)                  # 生成一個曲面
+        ax.plot_surface(X, Y, flirHot, rstride = 1, cstride = 1, cmap = plt.cm.gnuplot2)                  # 生成一個曲面
         # fig.tight_layout()
         if pltSavepath:
-            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            fig.savefig(pltSavepath, dpi = 1000, bbox_inches = 'tight')
             plt.close('all')
         plt.show()
 
@@ -160,7 +159,12 @@ class FlirPretreatment():
     
     def makeMask(self, flirHot, autoNormal):                                        # 圈出溫差 N度內範圍 
         flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均
-        ret, flimask = cv2.threshold(flirHot, flirMean, 255, cv2.THRESH_BINARY)                   # 產生遮罩
+        # ret, flimask = cv2.threshold(flirHot, flirMean, 255, cv2.THRESH_BINARY)                   # 產生遮罩
+        
+        flimask = flirHot.copy()        
+        flimask[flirHot < flirMean] = 0
+        self.drawHist(flimask, flirMean)
+
 
         normalObject = autoNormal.copy()                                                            # 二質化
         normalObject[flimask < 255] = 0
@@ -187,11 +191,17 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            self.drawFrame(flirRGB, flirHot, flimask, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
+            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=savePath)       # 圈出溫差 N度內範圍 
             # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
+            break
 
 
 if __name__ == '__main__':
+    palettes = [cm.gnuplot2]                        # 影像調色板
+    imgPath = os.walk(r'sample\all_information')   # 輸入路徑
+    # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
+    savePath = r'sample\\frame_save\\等溫線圖'
+
     flir = FlirPretreatment(imgPath, savePath, palettes)
     flir.main()
 
