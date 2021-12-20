@@ -158,11 +158,10 @@ class FlirPretreatment():
         return flirRGB, flirHot
     
     def makeMask(self, flirHot, autoNormal):                                        # 圈出溫差 N度內範圍 
-        flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均
-        # ret, flimask = cv2.threshold(flirHot, flirMean, 255, cv2.THRESH_BINARY)                   # 產生遮罩
+        flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均                 
         
         flimask = flirHot.copy()        
-        flimask[flirHot < flirMean] = 0
+        flimask[flirHot < flirMean] = 0                                                             # 產生遮罩
 
         normalObject = autoNormal.copy()                                                            # 二質化
         normalObject[flimask < 255] = 0
