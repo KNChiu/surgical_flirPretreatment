@@ -36,7 +36,7 @@ class FlirPretreatment():
         plt.xlabel("Thermal")
         plt.ylabel("Value")
 
-        plt.text(31.45, 477.5, "Mean : " + str(round(flirMean, 2)),
+        plt.text(31.45, 381.5, "Mean : " + str(round(flirMean, 2)),                 # 放置文字
                 fontsize=15,
                 color="red",
                 verticalalignment ='top', 
@@ -47,8 +47,8 @@ class FlirPretreatment():
 
         plt.hist(flirHot, 35, [15, 35])     # 繪製直線圖
         plt.xlim([15, 35])
-        plt.ylim([0, 500])
-        plt.vlines(flirMean, 1, 400, color="red")                          
+        plt.ylim([0, 400])
+        plt.vlines(flirMean, 2, 400, color="red")                          
         plt.show()
         # plt.close('all')
 
@@ -163,8 +163,6 @@ class FlirPretreatment():
         
         flimask = flirHot.copy()        
         flimask[flirHot < flirMean] = 0
-        self.drawHist(flimask, flirMean)
-
 
         normalObject = autoNormal.copy()                                                            # 二質化
         normalObject[flimask < 255] = 0
@@ -189,7 +187,8 @@ class FlirPretreatment():
             print("MAX Thermal :", np.amax(flirHot))
             print("MIN Thermal :", np.amin(flirHot))
 
-            # self.drawHist(flirHot, flirMean)
+            self.drawHist(flirHot, flirMean)
+            self.drawHist(flimask, flirMean)
             # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
             # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=savePath)       # 圈出溫差 N度內範圍 
             # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
