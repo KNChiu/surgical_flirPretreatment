@@ -77,7 +77,7 @@ class FlirPretreatment():
         plt.show()
         # plt.close('all')
 
-    def drawHist_Distribution(self, flirHot, flirframe):                                   # 畫出溫度範圍直線圖
+    def drawHist_Distribution(self, flirHot, normal):                                   # 畫出溫度範圍直線圖
         # plt.ylim([0, 400])
         # if flirframe != 0:
         #     ax1.text(31.45, 381.5, "frame: " + str(round(flirframe, 2)),                 # 放置文字
@@ -87,27 +87,31 @@ class FlirPretreatment():
         #             horizontalalignment ='center',
         #             bbox ={'facecolor':'white', 
         #                     'pad':10}
-        #     )
+        #     )        
+
+        x = flirHot[flirHot > 0]
+        x = x.flatten()
+        mean, std = x.mean(), x.std(ddof=1)
+        # conf_intveral = stats.norm.interval(0.9, loc=mean, scale=std)
+        # print(mean, std)
+        # print(conf_intveral)
 
         fig, ax1 = plt.subplots()
         plt.title("Thermal Distribution")
         plt.xlabel("Thermal")
         plt.xlim([15, 35])
-        ax2 = ax1.twinx()
-        ax1.set_ylabel("Value")
-        ax2.set_ylabel("Distribution")
+        # ax2 = ax1.twinx()
 
-        x = flirHot[flirHot > 0]
-        x = x.flatten()
-        mean, std = x.mean(), x.std(ddof=1)
-        # ax1.vlines(mean, 2, 300, color="red")
-
-        conf_intveral = stats.norm.interval(0.9, loc=mean, scale=std)
-        # print(mean, std)
-        # print(conf_intveral)
-
-        sns.distplot(x, bins = 35, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
-
+        if normal == False:
+            ax1.set_ylabel("Value")
+            ax1.vlines(mean, 0, 7000, linestyles ="dotted", color="red")
+            ax1 = sns.distplot(x, bins = 35, norm_hist=False, kde=False) 
+        else:
+            ax1.set_ylabel("Distribution")
+            ax1.vlines(mean, 0, 0.3, linestyles ="dotted", color="red")
+            ax1 = sns.distplot(x, bins = 35, norm_hist=False, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
+        
+        
         fig.tight_layout()
         plt.show()
         # plt.close('all')
@@ -250,7 +254,9 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawHist(flirHot, flirMean)
-            self.drawHist_Distribution(flimask, flirMean)
+            # self.drawHist_Distribution(flirHot, flirMean)
+            self.drawHist_Distribution(flimask, normal = True)          # 畫出直線圖與分佈曲線
+            self.drawHist_Distribution(flimask, normal = False)
 
             # # flimask[flimask < np.amax(flimask) - 4] = 0
             # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
@@ -259,7 +265,7 @@ class FlirPretreatment():
             # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
             
             # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
-            break
+            # break
 
 
 if __name__ == '__main__':
