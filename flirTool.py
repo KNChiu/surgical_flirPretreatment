@@ -8,6 +8,7 @@ import os
 import cv2
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import stats
+import seaborn as sns
 
 # drawHist = False                                # 畫出直方圖
 # drawMask = True                                # 劃出遮罩
@@ -91,23 +92,21 @@ class FlirPretreatment():
         fig, ax1 = plt.subplots()
         plt.title("Thermal Distribution")
         plt.xlabel("Thermal")
-        plt.ylabel("Value")
-        ax2 = ax1.twinx()
-
-        ax1.hist(flirHot, 35, [15, 35])     # 繪製直線圖   
         plt.xlim([15, 35])
-
+        ax2 = ax1.twinx()
+        ax1.set_ylabel("Value")
+        ax2.set_ylabel("Distribution")
 
         x = flirHot[flirHot > 0]
+        x = x.flatten()
         mean, std = x.mean(), x.std(ddof=1)
-        ax1.vlines(mean, 2, 300, color="blue")
+        # ax1.vlines(mean, 2, 300, color="red")
 
-        # print(mean, std)
         conf_intveral = stats.norm.interval(0.9, loc=mean, scale=std)
+        # print(mean, std)
         # print(conf_intveral)
 
-        y = stats.norm.pdf(x, loc=mean, scale=std)
-        ax2.plot(x, y)
+        sns.distplot(x, bins = 35, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
 
         fig.tight_layout()
         plt.show()
