@@ -87,23 +87,25 @@ class FlirPretreatment():
         #             bbox ={'facecolor':'white', 
         #                     'pad':10}
         #     )
-        
+
         fig, ax1 = plt.subplots()
         plt.title("Thermal Distribution")
         plt.xlabel("Thermal")
         plt.ylabel("Value")
         ax2 = ax1.twinx()
 
-        ax1.hist(flirHot, 35, [15, 35])     # 繪製直線圖
-        ax1.vlines(flirHot.mean(), 2, 400, color="blue")   
+        ax1.hist(flirHot, 35, [15, 35])     # 繪製直線圖   
         plt.xlim([15, 35])
 
-        x = flirHot
+
+        x = flirHot[flirHot > 0]
         mean, std = x.mean(), x.std(ddof=1)
-        print(mean, std)
+        ax1.vlines(mean, 2, 300, color="blue")
+
+        # print(mean, std)
         conf_intveral = stats.norm.interval(0.9, loc=mean, scale=std)
-        print(conf_intveral)
-        # x = x.flatten()
+        # print(conf_intveral)
+
         y = stats.norm.pdf(x, loc=mean, scale=std)
         ax2.plot(x, y)
 
@@ -249,7 +251,7 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawHist(flirHot, flirMean)
-            self.drawHist_Distribution(flirHot, flirMean)
+            self.drawHist_Distribution(flimask, flirMean)
 
             # # flimask[flimask < np.amax(flimask) - 4] = 0
             # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
