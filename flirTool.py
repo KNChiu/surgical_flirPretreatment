@@ -7,6 +7,7 @@ import numpy as np
 import os 
 import cv2
 from mpl_toolkits.mplot3d import Axes3D
+from scipy import stats
 
 # drawHist = False                                # 畫出直方圖
 # drawMask = True                                # 劃出遮罩
@@ -31,28 +32,88 @@ class FlirPretreatment():
         return imgPathlist
 
     def drawHist(self, flirHot, flirMean):                                          # 畫出溫度直線圖
-        print('mean :', flirMean)
-        plt.title("Thermal Distribution")
-        plt.xlabel("Thermal")
-        plt.ylabel("Value")
-
-        plt.text(31.45, 381.5, "Mean : " + str(round(flirMean, 2)),                 # 放置文字
-                fontsize=15,
-                color="red",
-                verticalalignment ='top', 
-                horizontalalignment ='center',
-                bbox ={'facecolor':'white', 
-                        'pad':10}
-        )
-
         plt.hist(flirHot, 35, [15, 35])     # 繪製直線圖
         plt.xlim([15, 35])
         plt.ylim([0, 400])
-        plt.vlines(flirMean, 2, 400, color="red")                          
+
+        if flirMean != 0:
+            plt.vlines(flirMean, 2, 400, color="red")     
+            # print('mean :', flirMean)
+            plt.title("Thermal Distribution")
+            plt.xlabel("Thermal")
+            plt.ylabel("Value")
+
+            plt.text(31.45, 381.5, "Mean : " + str(round(flirMean, 2)),                 # 放置文字
+                    fontsize=15,
+                    color="red",
+                    verticalalignment ='top', 
+                    horizontalalignment ='center',
+                    bbox ={'facecolor':'white', 
+                            'pad':10}
+            )
+        plt.show()
+        # plt.close('all')
+
+    def drawHist_frame(self, flirHot, flirframe):                                   # 畫出溫度範圍直線圖
+        plt.hist(flirHot, 35, [15, 35])     # 繪製直線圖
+        plt.xlim([15, 35])
+        plt.ylim([0, 400])
+
+        if flirframe != 0:
+            plt.vlines(flirframe, 2, 400, color="blue")     
+            plt.title("Thermal Distribution")
+            plt.xlabel("Thermal")
+            plt.ylabel("Value")
+
+            plt.text(31.45, 381.5, "frame: " + str(round(flirframe, 2)),                 # 放置文字
+                    fontsize=15,
+                    color="blue",
+                    verticalalignment ='top', 
+                    horizontalalignment ='center',
+                    bbox ={'facecolor':'white', 
+                            'pad':10}
+            )
+        plt.show()
+        # plt.close('all')
+
+    def drawHist_Distribution(self, flirHot, flirframe):                                   # 畫出溫度範圍直線圖
+        # plt.ylim([0, 400])
+        # if flirframe != 0:
+        #     ax1.text(31.45, 381.5, "frame: " + str(round(flirframe, 2)),                 # 放置文字
+        #             fontsize=15,
+        #             color="blue",
+        #             verticalalignment ='top', 
+        #             horizontalalignment ='center',
+        #             bbox ={'facecolor':'white', 
+        #                     'pad':10}
+        #     )
+        
+        fig, ax1 = plt.subplots()
+        plt.title("Thermal Distribution")
+        plt.xlabel("Thermal")
+        plt.ylabel("Value")
+        ax2 = ax1.twinx()
+
+        ax1.hist(flirHot, 35, [15, 35])     # 繪製直線圖
+        ax1.vlines(flirHot.mean(), 2, 400, color="blue")   
+        plt.xlim([15, 35])
+
+        x = flirHot
+        mean, std = x.mean(), x.std(ddof=1)
+        print(mean, std)
+        conf_intveral = stats.norm.interval(0.9, loc=mean, scale=std)
+        print(conf_intveral)
+        # x = x.flatten()
+        y = stats.norm.pdf(x, loc=mean, scale=std)
+        ax2.plot(x, y)
+
+        fig.tight_layout()
         plt.show()
         # plt.close('all')
 
     def drawMask(self, flirRGB, flirHot, flimask, normalObject, pltSavepath):       # 畫出患者範圍
+        flirRGB = cv2.resize(flirRGB, (int(flirHot.shape[1]), int(flirHot.shape[0])))
+
         fig = plt.figure()
         subplot1=fig.add_subplot(1, 4, 1)
         subplot1.imshow(flirRGB)
@@ -164,7 +225,7 @@ class FlirPretreatment():
         flimask[flirHot < flirMean] = 0                                                             # 產生遮罩
 
         normalObject = autoNormal.copy()                                                            # 二質化
-        normalObject[flimask < 255] = 0
+        normalObject[flimask < flirMean] = 0
 
         hotObject = flirHot.copy()
         hotObject[flimask < 255] = 0
@@ -186,20 +247,27 @@ class FlirPretreatment():
             print("MAX Thermal :", np.amax(flirHot))
             print("MIN Thermal :", np.amin(flirHot))
 
-            self.drawHist(flirHot, flirMean)
-            self.drawHist(flimask, flirMean)
-            # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=savePath)       # 圈出溫差 N度內範圍 
-            # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
+            # self.drawHist(flirHot, flirMean)
+            # self.drawHist(flirHot, flirMean)
+            self.drawHist_Distribution(flirHot, flirMean)
+
+            # # flimask[flimask < np.amax(flimask) - 4] = 0
+            # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
+
+            # # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
+            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
+            
+            # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
             break
 
 
 if __name__ == '__main__':
     palettes = [cm.gnuplot2]                        # 影像調色板
-    imgPath = os.walk(r'sample\all_information')   # 輸入路徑
+    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
     # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
     savePath = r'sample\\frame_save\\等溫線圖'
 
     flir = FlirPretreatment(imgPath, savePath, palettes)
     flir.main()
+
 
