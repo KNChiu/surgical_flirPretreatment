@@ -121,6 +121,7 @@ class FlirPretreatment():
         fig.tight_layout()
         plt.show()
         # plt.close('all')
+        return conf_intveral
 
     def drawMask(self, flirRGB, flirHot, flimask, normalObject, pltSavepath):       # 畫出患者範圍
         flirRGB = cv2.resize(flirRGB, (int(flirHot.shape[1]), int(flirHot.shape[0])))
@@ -156,7 +157,7 @@ class FlirPretreatment():
         # flirHot[flimask < 255] = 0
 
         flirframe = normalObject.copy()
-        flirframe[flirHot < np.amax(flirHot) - thermalRange] = 0         
+        flirframe[flirHot < thermalRange] = 0         
 
 
         fig = plt.figure()
@@ -260,14 +261,15 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawHist(flirHot, flirMean)
-            self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.65, normal = True)          # 畫出直線圖與分佈曲線
-
+            conf_intveral = self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.682, normal = True)   # 畫出直線圖與分佈曲線
+            print(conf_intveral[0])     # 輸出一倍標準差的值
 
             # # flimask[flimask < np.amax(flimask) - 4] = 0
             # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
 
             # # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
+            self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = np.amax(flirHot) - 4, pltSavepath=None)   # 圈出溫差 N度內範圍 
+            self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[0], pltSavepath=None)       # 圈出溫差 N度內範圍 
             
             # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
             # break
