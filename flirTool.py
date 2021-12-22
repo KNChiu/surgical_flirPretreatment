@@ -77,7 +77,7 @@ class FlirPretreatment():
         plt.show()
         # plt.close('all')
 
-    def drawHist_Distribution(self, flirHot, normal):                                   # 畫出溫度範圍直線圖
+    def drawHist_Distribution(self, flirHot, flirframe, confidence, normal):                                   # 畫出溫度範圍直線圖
         # plt.ylim([0, 400])
         # if flirframe != 0:
         #     ax1.text(31.45, 381.5, "frame: " + str(round(flirframe, 2)),                 # 放置文字
@@ -92,9 +92,10 @@ class FlirPretreatment():
         x = flirHot[flirHot > 0]
         x = x.flatten()
         mean, std = x.mean(), x.std(ddof=1)
-        # conf_intveral = stats.norm.interval(0.9, loc=mean, scale=std)
+        conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)
         # print(mean, std)
-        # print(conf_intveral)
+        print("最高溫差4度", x.max() - flirframe)
+        print(str(confidence*100) + "%信賴區間", conf_intveral)
 
         fig, ax1 = plt.subplots()
         plt.title("Thermal Distribution")
@@ -104,11 +105,16 @@ class FlirPretreatment():
 
         if normal == False:
             ax1.set_ylabel("Value")
-            ax1.vlines(mean, 0, 7000, linestyles ="dotted", color="red")
+            ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
+            ax1.vlines(x.max() - flirframe, 0, 7000, linestyles ="dotted", color="orange")
+            ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
+
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, kde=False) 
         else:
             ax1.set_ylabel("Distribution")
-            ax1.vlines(mean, 0, 0.3, linestyles ="dotted", color="red")
+            ax1.vlines(mean, 0, 0.5, linestyles ="-", color="red")
+            ax1.vlines(x.max() - flirframe, 0, 0.5, linestyles ="dotted", color="orange")
+            ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
         
         
@@ -254,15 +260,14 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawHist(flirHot, flirMean)
-            # self.drawHist_Distribution(flirHot, flirMean)
-            self.drawHist_Distribution(flimask, normal = True)          # 畫出直線圖與分佈曲線
-            self.drawHist_Distribution(flimask, normal = False)
+            self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.65, normal = True)          # 畫出直線圖與分佈曲線
+
 
             # # flimask[flimask < np.amax(flimask) - 4] = 0
             # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
 
             # # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
+            self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = 4, pltSavepath=None)       # 圈出溫差 N度內範圍 
             
             # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
             # break
