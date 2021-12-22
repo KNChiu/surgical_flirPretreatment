@@ -105,18 +105,19 @@ class FlirPretreatment():
 
         if normal == False:
             ax1.set_ylabel("Value")
-            ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
-            ax1.vlines(x.max() - flirframe, 0, 7000, linestyles ="dotted", color="orange")
-            ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
+            l1 = ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
+            l2 = ax1.vlines(x.max() - flirframe, 0, 7000, linestyles ="dotted", color="orange")
+            l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
 
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, kde=False) 
         else:
             ax1.set_ylabel("Distribution")
-            ax1.vlines(mean, 0, 0.5, linestyles ="-", color="red")
-            ax1.vlines(x.max() - flirframe, 0, 0.5, linestyles ="dotted", color="orange")
-            ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
+            l1 = ax1.vlines(mean, 0, 0.5, linestyles ="-", color="red")
+            l2 = ax1.vlines(x.max() - flirframe, 0, 0.5, linestyles ="dotted", color="orange")
+            l3 = ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
         
+        plt.legend(handles=[l1,l2,l3],labels=['mean','max-4','68.26%'],loc='upper right')
         
         fig.tight_layout()
         plt.show()
@@ -171,7 +172,7 @@ class FlirPretreatment():
 
         subplot3=fig.add_subplot(1, 3, 3)
         subplot3.imshow(flirframe, cmap=cm.gnuplot2)
-        subplot3.set_title("Flir Frame - "+ str(thermalRange))
+        subplot3.set_title("Flir Frame : "+ str(round(thermalRange, 2)))
 
         # subplot4=fig.add_subplot(1, 4, 4)
         # subplot4.imshow(normalObject-flirframe, cmap=cm.gnuplot2)
@@ -261,7 +262,7 @@ class FlirPretreatment():
 
             # self.drawHist(flirHot, flirMean)
             # self.drawHist(flirHot, flirMean)
-            conf_intveral = self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.682, normal = True)   # 畫出直線圖與分佈曲線
+            conf_intveral = self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.6826, normal = True)   # 畫出直線圖與分佈曲線
             print(conf_intveral[0])     # 輸出一倍標準差的值
 
             # # flimask[flimask < np.amax(flimask) - 4] = 0
