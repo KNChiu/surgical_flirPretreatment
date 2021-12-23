@@ -9,13 +9,14 @@ import cv2
 from mpl_toolkits.mplot3d import Axes3D
 from scipy import stats
 import seaborn as sns
+import logging
 
+logging.basicConfig(level=logging.ERROR)
+info = logging.info
 # drawHist = False                                # 畫出直方圖
 # drawMask = True                                # 劃出遮罩
 
 # minTemp = maxTemp = None                        # 溫度上下限
-
-
 
 class FlirPretreatment():
     def __init__(self, imgPath, savePath, palettes):
@@ -78,17 +79,6 @@ class FlirPretreatment():
         # plt.close('all')
 
     def drawHist_Distribution(self, flirHot, flirframe, confidence, normal):                                   # 畫出溫度範圍直線圖
-        # plt.ylim([0, 400])
-        # if flirframe != 0:
-        #     ax1.text(31.45, 381.5, "frame: " + str(round(flirframe, 2)),                 # 放置文字
-        #             fontsize=15,
-        #             color="blue",
-        #             verticalalignment ='top', 
-        #             horizontalalignment ='center',
-        #             bbox ={'facecolor':'white', 
-        #                     'pad':10}
-        #     )        
-
         x = flirHot[flirHot > 0]
         x = x.flatten()
         mean, std = x.mean(), x.std(ddof=1)
@@ -156,7 +146,6 @@ class FlirPretreatment():
     def drawFrame(self, flirRGB, flirHot, normalObject, thermalRange, pltSavepath):      # 圈出溫差範圍
 
         # flirHot[flimask < 255] = 0
-
         flirframe = normalObject.copy()
         flirframe[flirHot < thermalRange] = 0         
 
@@ -263,7 +252,6 @@ class FlirPretreatment():
             # self.drawHist(flirHot, flirMean)
             # self.drawHist(flirHot, flirMean)
             conf_intveral = self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.6826, normal = True)   # 畫出直線圖與分佈曲線
-            print(conf_intveral[0])     # 輸出一倍標準差的值
 
             # # flimask[flimask < np.amax(flimask) - 4] = 0
             # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
