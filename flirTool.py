@@ -78,7 +78,7 @@ class FlirPretreatment():
         plt.show()
         # plt.close('all')
 
-    def drawHist_Distribution(self, flirHot, flirframe, confidence, normal):                                   # 畫出溫度範圍直線圖
+    def drawHist_Distribution(self, flirHot, flirframe, confidence, normal):        # 畫出溫度範圍直線圖
         x = flirHot[flirHot > 0]
         x = x.flatten()
         mean, std = x.mean(), x.std(ddof=1)
@@ -178,6 +178,53 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
+    def drawAllframe(self, flirRGB, flirHot, normalObject, thermalRange, pltSavepath):      # 圈出溫差範圍
+
+        # flirHot[flimask < 255] = 0
+        flirframe_4 = normalObject.copy()
+        flirframe_distribution_Left = normalObject.copy()
+        flirframe_distribution_right = normalObject.copy()
+
+        flirframe_4[flirHot < np.amax(flirHot) - 4] = 0  
+
+        flirframe_distribution_Left[flirHot < thermalRange[0]] = 0         
+        flirframe_distribution_right[flirHot < thermalRange[1]] = 0         
+
+        fig = plt.figure()
+        subplot1=fig.add_subplot(2, 3, 1)
+        subplot1.imshow(flirRGB)
+        subplot1.set_title("RGB image")
+
+        subplot2=fig.add_subplot(2, 3, 2)
+        subplot2.imshow(flirHot, cmap=cm.gnuplot2)
+        subplot2.set_title("Flir image")
+
+        subplot3=fig.add_subplot(2, 3, 3)
+        subplot3.imshow(normalObject, cmap=cm.gnuplot2)
+        subplot3.set_title("Remove Background")
+
+        subplot4=fig.add_subplot(2, 3, 4)
+        subplot4.imshow(flirframe_4, cmap=cm.gnuplot2)
+        subplot4.set_title("-4 frame")
+
+        subplot5=fig.add_subplot(2, 3, 5)
+        subplot5.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)
+        subplot5.set_title("Distribution Left")
+
+        subplot6=fig.add_subplot(2, 3, 6)
+        subplot6.imshow(flirframe_distribution_right, cmap=cm.gnuplot2)
+        subplot6.set_title("Distribution Right")
+
+        figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MEAN Thermal :"+ str(round(np.mean(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
+        fig.suptitle(figTitle)
+        fig.tight_layout()
+
+        if pltSavepath:
+            print("save at:"+ str(pltSavepath))
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+        plt.show()
+
     def draw3D(self, flirObject, hotObject, flirHot, pltSavepath):                  # 畫出地形圖
         x_size = flirObject.shape[1]
         y_size =  flirObject.shape[0]
@@ -257,9 +304,12 @@ class FlirPretreatment():
             # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
 
             # # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = np.amax(flirHot) - 4, pltSavepath=None)   # 圈出溫差 N度內範圍 
-            self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[0], pltSavepath=None)       # 圈出溫差 N度內範圍 
+            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = np.amax(flirHot) - 4, pltSavepath=None)   # 圈出溫差 N度內範圍 
+            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[0], pltSavepath=None)       # 圈出溫差 N度內範圍 
+            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[1], pltSavepath=None)       # 圈出溫差 N度內範圍 
+
             
+            self.drawAllframe(flirRGB, flirHot, normalObject, thermalRange = conf_intveral, pltSavepath=None)
             # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
             # break
 
