@@ -180,7 +180,7 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
-    def drawAllframe(self, flirRGB, flirHot, normalObject, thermalRange, flirframe, pltSavepath):      # 圈出溫差範圍
+    def drawAllframe(self, flirRGB, flirHot, normalObject, thermalRange, flirframe, confidence, pltSavepath):      # 圈出溫差範圍
 
         # flirHot[flimask < 255] = 0
         flirframe_4 = normalObject.copy()
@@ -222,6 +222,7 @@ class FlirPretreatment():
         fig.tight_layout()
 
         if pltSavepath:
+            pltSavepath = savePath.split(".")[0] + "_temp_" + str(flirframe) +"_distri_"+str(confidence*100)+".jpg"
             print("save at:"+ str(pltSavepath))
             fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
             plt.close('all')
@@ -302,7 +303,8 @@ class FlirPretreatment():
                 # self.drawHist(flirHot, flirMean)
                 # self.drawHist(flirHot, flirMean)
                 temperDiffer = 1.5
-                conf_intveral = self.drawHist_Distribution(flimask, flirframe = temperDiffer, confidence = 0.6826, normal = True, pltSavepath=None)   # 畫出直線圖與分佈曲線
+                confiDence = 0.6826
+                conf_intveral = self.drawHist_Distribution(flimask, flirframe = temperDiffer, confidence = confiDence, normal = True, pltSavepath=None)   # 畫出直線圖與分佈曲線
 
                 # # flimask[flimask < np.amax(flimask) - 4] = 0
                 # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
@@ -313,14 +315,14 @@ class FlirPretreatment():
                 # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[1], pltSavepath=None)       # 圈出溫差 N度內範圍 
 
                 
-                self.drawAllframe(flirRGB, flirHot, normalObject, thermalRange = conf_intveral, flirframe = temperDiffer, pltSavepath=None)
+                self.drawAllframe(flirRGB, flirHot, normalObject, thermalRange = conf_intveral, flirframe = temperDiffer, confidence = confiDence, pltSavepath=None)
                 # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
                 # break
 
 
 if __name__ == '__main__':
     palettes = [cm.gnuplot2]                        # 影像調色板
-    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\感染前期')   # 輸入路徑
+    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\感染後期')   # 輸入路徑
     # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
     savePath = r'sample\\frame_save\\感染前期_標準差與溫差4度檢視'
 
