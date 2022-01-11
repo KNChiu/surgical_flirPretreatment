@@ -11,8 +11,7 @@ from scipy import stats
 import seaborn as sns
 import logging
 
-logging.basicConfig(level=logging.ERROR)
-info = logging.info
+logging.basicConfig(level=logging.ERROR)          # 避免出現WARNINIG
 # drawHist = False                                # 畫出直方圖
 # drawMask = True                                # 劃出遮罩
 
@@ -78,13 +77,13 @@ class FlirPretreatment():
         plt.show()
         # plt.close('all')
 
-    def drawHist_Distribution(self, flirHot, flirframe, confidence, normal):        # 畫出溫度範圍直線圖
+    def drawHist_Distribution(self, flirHot, flirframe, confidence, normal, pltSavepath):        # 畫出溫度範圍直線圖
         x = flirHot[flirHot > 0]
         x = x.flatten()
         mean, std = x.mean(), x.std(ddof=1)
         conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)
         # print(mean, std)
-        print("最高溫差4度", x.max() - flirframe)
+        print("最高溫差"+str(flirframe) + "度", x.max() - flirframe)
         print(str(confidence*100) + "%信賴區間", conf_intveral)
 
         fig, ax1 = plt.subplots()
@@ -107,11 +106,14 @@ class FlirPretreatment():
             l3 = ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
         
-        plt.legend(handles=[l1,l2,l3],labels=['mean','max-4','68.26%'],loc='upper right')
+        plt.legend(handles=[l1,l2,l3],labels=['mean','max-'+str(flirframe),str(confidence*100)+'%'],loc='upper right')
         
         fig.tight_layout()
+        if pltSavepath:
+            print("save at:"+ str(pltSavepath))
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
         plt.show()
-        # plt.close('all')
         return conf_intveral
 
     def drawMask(self, flirRGB, flirHot, flimask, normalObject, pltSavepath):       # 畫出患者範圍
@@ -178,14 +180,14 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
-    def drawAllframe(self, flirRGB, flirHot, normalObject, thermalRange, pltSavepath):      # 圈出溫差範圍
+    def drawAllframe(self, flirRGB, flirHot, normalObject, thermalRange, flirframe, pltSavepath):      # 圈出溫差範圍
 
         # flirHot[flimask < 255] = 0
         flirframe_4 = normalObject.copy()
         flirframe_distribution_Left = normalObject.copy()
         flirframe_distribution_right = normalObject.copy()
 
-        flirframe_4[flirHot < np.amax(flirHot) - 4] = 0  
+        flirframe_4[flirHot < np.amax(flirHot) - flirframe] = 0  
 
         flirframe_distribution_Left[flirHot < thermalRange[0]] = 0         
         flirframe_distribution_right[flirHot < thermalRange[1]] = 0         
@@ -205,7 +207,7 @@ class FlirPretreatment():
 
         subplot4=fig.add_subplot(2, 3, 4)
         subplot4.imshow(flirframe_4, cmap=cm.gnuplot2)
-        subplot4.set_title("-4 frame")
+        subplot4.set_title("-"+ str(flirframe) +" frame")
 
         subplot5=fig.add_subplot(2, 3, 5)
         subplot5.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)
@@ -283,42 +285,44 @@ class FlirPretreatment():
     def main(self):
         for imgPath in self.imgPathlist:
             imgName = os.path.split(imgPath)[-1]
-            savePath = os.path.join(self.savePath, imgName)
-            
-            flirRGB, flirHot = self.separateNP(imgPath)                                             # 分離原始圖像與溫度影像
+            if imgName.split(".")[-1] == "jpg":
+                savePath = os.path.join(self.savePath, imgName)
+                
+                flirRGB, flirHot = self.separateNP(imgPath)                                             # 分離原始圖像與溫度影像
 
-            autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
-            flimask, normalObject, hotObject = self.makeMask(flirHot, autoNormal)                   # 建立遮罩影像
-            flirMean = flirHot.mean() 
+                autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
+                flimask, normalObject, hotObject = self.makeMask(flirHot, autoNormal)                   # 建立遮罩影像
+                flirMean = flirHot.mean() 
 
-            print("===========================")
-            print(imgPath)
-            print("MAX Thermal :", np.amax(flirHot))
-            print("MIN Thermal :", np.amin(flirHot))
+                print("===========================")
+                print(imgPath)
+                print("MAX Thermal :", np.amax(flirHot))
+                print("MIN Thermal :", np.amin(flirHot))
 
-            # self.drawHist(flirHot, flirMean)
-            # self.drawHist(flirHot, flirMean)
-            conf_intveral = self.drawHist_Distribution(flimask, flirframe = 4, confidence = 0.6826, normal = True)   # 畫出直線圖與分佈曲線
+                # self.drawHist(flirHot, flirMean)
+                # self.drawHist(flirHot, flirMean)
+                temperDiffer = 1.5
+                conf_intveral = self.drawHist_Distribution(flimask, flirframe = temperDiffer, confidence = 0.6826, normal = True, pltSavepath=None)   # 畫出直線圖與分佈曲線
 
-            # # flimask[flimask < np.amax(flimask) - 4] = 0
-            # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
+                # # flimask[flimask < np.amax(flimask) - 4] = 0
+                # self.drawHist_frame(flimask, np.amax(flimask) - 4)                # 查看分佈
 
-            # # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
-            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = np.amax(flirHot) - 4, pltSavepath=None)   # 圈出溫差 N度內範圍 
-            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[0], pltSavepath=None)       # 圈出溫差 N度內範圍 
-            # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[1], pltSavepath=None)       # 圈出溫差 N度內範圍 
+                # # self.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath=None)
+                # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = np.amax(flirHot) - 4, pltSavepath=None)   # 圈出溫差 N度內範圍 
+                # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[0], pltSavepath=None)       # 圈出溫差 N度內範圍 
+                # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[1], pltSavepath=None)       # 圈出溫差 N度內範圍 
 
-            
-            self.drawAllframe(flirRGB, flirHot, normalObject, thermalRange = conf_intveral, pltSavepath=None)
-            # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
-            # break
+                
+                self.drawAllframe(flirRGB, flirHot, normalObject, thermalRange = conf_intveral, flirframe = temperDiffer, pltSavepath=None)
+                # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
+                # break
 
 
 if __name__ == '__main__':
     palettes = [cm.gnuplot2]                        # 影像調色板
-    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
+    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\感染前期')   # 輸入路徑
     # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
-    savePath = r'sample\\frame_save\\等溫線圖'
+    savePath = r'sample\\frame_save\\感染前期_標準差與溫差4度檢視'
 
     flir = FlirPretreatment(imgPath, savePath, palettes)
     flir.main()
