@@ -77,13 +77,14 @@ class FlirPretreatment():
         plt.show()
         # plt.close('all')
 
-    def drawHist_Distribution(self, flirHot, flirframe, confidence, normal, pltSavepath):        # 畫出溫度範圍直線圖
-        x = flirHot[flirHot > 0]
-        x = x.flatten()
+    def drawHist_Distribution(self, flimask, flirframe, confidence, normal, pltSavepath):        # 畫出溫度範圍直線圖
+        x = flimask[flimask > 0]
+        x = x.flatten()                     
         mean, std = x.mean(), x.std(ddof=1)
+        dataRange = x.mean()
         conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)
         # print(mean, std)
-        print("最高溫差"+str(flirframe) + "度", x.max() - flirframe)
+        print("與平均溫差"+str(flirframe) + "度", dataRange + flirframe)
         print(str(confidence*100) + "%信賴區間", conf_intveral)
 
         fig, ax1 = plt.subplots()
@@ -95,18 +96,18 @@ class FlirPretreatment():
         if normal == False:
             ax1.set_ylabel("Value")
             l1 = ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
-            l2 = ax1.vlines(x.max() - flirframe, 0, 7000, linestyles ="dotted", color="orange")
+            l2 = ax1.vlines(dataRange + flirframe, 0, 7000, linestyles ="dotted", color="orange")
             l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
 
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, kde=False) 
         else:
             ax1.set_ylabel("Distribution")
             l1 = ax1.vlines(mean, 0, 0.5, linestyles ="-", color="red")
-            l2 = ax1.vlines(x.max() - flirframe, 0, 0.5, linestyles ="dotted", color="orange")
+            l2 = ax1.vlines(dataRange + flirframe, 0, 0.5, linestyles ="dotted", color="orange")
             l3 = ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
         
-        plt.legend(handles=[l1,l2,l3],labels=['mean','max-'+str(flirframe),str(confidence*100)+'%'],loc='upper right')
+        plt.legend(handles=[l1,l2,l3],labels=['mean','mean+'+str(flirframe),str(confidence*100)+'%'],loc='upper right')
         
         fig.tight_layout()
         if pltSavepath:
@@ -180,14 +181,19 @@ class FlirPretreatment():
             plt.close('all')
         plt.show()
 
-    def drawAllframe(self, flirRGB, flirHot, normalObject, thermalRange, flirframe, confidence, pltSavepath):      # 圈出溫差範圍
+    def drawAllframe(self, flirRGB, flirHot, normalObject,flimask, thermalRange, flirframe, confidence, pltSavepath):      # 圈出溫差範圍
 
         # flirHot[flimask < 255] = 0
+        x = flimask[flimask > 0]
+        x = x.flatten()
+        dataRange = x.mean()
+        
         flirframe_4 = normalObject.copy()
         flirframe_distribution_Left = normalObject.copy()
         flirframe_distribution_right = normalObject.copy()
 
-        flirframe_4[flirHot < np.amax(flirHot) - flirframe] = 0  
+        flirframe_4[flirHot < (dataRange + flirframe)] = 0  
+        print(dataRange)
 
         flirframe_distribution_Left[flirHot < thermalRange[0]] = 0         
         flirframe_distribution_right[flirHot < thermalRange[1]] = 0         
@@ -207,7 +213,7 @@ class FlirPretreatment():
 
         subplot4=fig.add_subplot(2, 3, 4)
         subplot4.imshow(flirframe_4, cmap=cm.gnuplot2)
-        subplot4.set_title("-"+ str(flirframe) +" frame")
+        subplot4.set_title("+"+ str(flirframe) +" frame")
 
         subplot5=fig.add_subplot(2, 3, 5)
         subplot5.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)
@@ -315,14 +321,14 @@ class FlirPretreatment():
                 # self.drawFrame(flirRGB, flirHot, normalObject, thermalRange = conf_intveral[1], pltSavepath=None)       # 圈出溫差 N度內範圍 
 
                 
-                self.drawAllframe(flirRGB, flirHot, normalObject, thermalRange = conf_intveral, flirframe = temperDiffer, confidence = confiDence, pltSavepath=None)
+                self.drawAllframe(flirRGB, flirHot, normalObject, flimask, thermalRange = conf_intveral, flirframe = temperDiffer, confidence = confiDence, pltSavepath=None)
                 # # self.draw3D(normalObject, hotObject, flirHot, pltSavepath=None)
                 # break
 
 
 if __name__ == '__main__':
     palettes = [cm.gnuplot2]                        # 影像調色板
-    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\感染後期')   # 輸入路徑
+    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\感染前期')   # 輸入路徑
     # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
     savePath = r'sample\\frame_save\\感染前期_標準差與溫差4度檢視'
 
@@ -330,3 +336,5 @@ if __name__ == '__main__':
     flir.main()
 
 
+
+# %%
