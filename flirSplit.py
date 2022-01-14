@@ -38,13 +38,13 @@ class flir_img_split:
         
         return flirRGB, flirHot
 
-    def saveCmap(self, flirHot, pltSavepath):
-        plt.imshow(flirHot, cmap=cm.gnuplot2)
-        plt.axis('off')
-        if pltSavepath:
+    def saveCmap(self, flirHot, pltSavepath = None):           # 轉換色彩地圖後儲存
+        plt.imshow(flirHot, cmap=cm.gnuplot2)                                                       # 顯示
+        plt.axis('off')                                                                             # 關閉邊框
+        if pltSavepath:                                                                             # 如果有儲存地址
             print("save at:"+ str(pltSavepath))
-            plt.imsave(pltSavepath, flirHot, cmap=cm.gnuplot2)
-            plt.close('all')
+            plt.imsave(pltSavepath, flirHot, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
+            plt.close('all')                                                                        # 不顯示影像
         plt.show()
 
 
