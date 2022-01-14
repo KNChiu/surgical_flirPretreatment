@@ -78,11 +78,11 @@ class FlirPretreatment():
         # plt.close('all')
 
     def drawHist_Distribution(self, flimask, flirframe, confidence, normal, pltSavepath):        # 畫出溫度範圍直線圖
-        x = flimask[flimask > 0]
-        x = x.flatten()                     
-        mean, std = x.mean(), x.std(ddof=1)
+        x = flimask[flimask > 0]                        # 去除為0資料
+        x = x.flatten()                                 # 攤平數據
+        mean, std = x.mean(), x.std(ddof=1)             # 計算均值與標準差
         dataRange = x.mean()
-        conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)
+        conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)        # 取得信心區間 
         # print(mean, std)
         print("與平均溫差"+str(flirframe) + "度", dataRange + flirframe)
         print(str(confidence*100) + "%信賴區間", conf_intveral)
@@ -93,12 +93,11 @@ class FlirPretreatment():
         plt.xlim([15, 35])
         # ax2 = ax1.twinx()
 
-        if normal == False:
+        if normal == False:                                                         # 是否使用 normal 效果
             ax1.set_ylabel("Value")
             l1 = ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
             l2 = ax1.vlines(dataRange + flirframe, 0, 7000, linestyles ="dotted", color="orange")
             l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
-
             ax1 = sns.distplot(x, bins = 35, norm_hist=False, kde=False) 
         else:
             ax1.set_ylabel("Distribution")
@@ -121,17 +120,17 @@ class FlirPretreatment():
         flirRGB = cv2.resize(flirRGB, (int(flirHot.shape[1]), int(flirHot.shape[0])))
 
         fig = plt.figure()
-        subplot1=fig.add_subplot(1, 4, 1)
-        subplot1.imshow(flirRGB)
+        subplot1=fig.add_subplot(1, 4, 1)       
+        subplot1.imshow(flirRGB)                            # 顯示 RGB影像
         subplot1.set_title("RGB image")
 
         subplot2=fig.add_subplot(1, 4, 2)
         subplot2.imshow(flirHot, cmap=cm.gnuplot2)
-        subplot2.set_title("Flir image")
+        subplot2.set_title("Flir image")                    # 溫度影像
 
         subplot3=fig.add_subplot(1, 4, 3)
         subplot3.imshow(flimask)
-        subplot3.set_title("Thresh Mask")
+        subplot3.set_title("Thresh Mask")                   # 遮罩影像
 
         subplot4=fig.add_subplot(1, 4, 4)
         subplot4.imshow(normalObject, cmap=cm.gnuplot2)
@@ -184,16 +183,15 @@ class FlirPretreatment():
     def drawAllframe(self, flirRGB, flirHot, normalObject,flimask, thermalRange, flirframe, confidence, pltSavepath):      # 圈出溫差範圍
 
         # flirHot[flimask < 255] = 0
-        x = flimask[flimask > 0]
-        x = x.flatten()
-        dataRange = x.mean()
+        x = flimask[flimask > 0]                                                # 去除為0資料
+        x = x.flatten()                                                         # 攤平數據
+        dataRange = x.mean()                                                    # 設定標準值
         
         flirframe_4 = normalObject.copy()
         flirframe_distribution_Left = normalObject.copy()
         flirframe_distribution_right = normalObject.copy()
 
-        flirframe_4[flirHot < (dataRange + flirframe)] = 0  
-        print(dataRange)
+        flirframe_4[flirHot < (dataRange + flirframe)] = 0                      # 要畫出的範圍
 
         flirframe_distribution_Left[flirHot < thermalRange[0]] = 0         
         flirframe_distribution_right[flirHot < thermalRange[1]] = 0         
@@ -213,7 +211,7 @@ class FlirPretreatment():
 
         subplot4=fig.add_subplot(2, 3, 4)
         subplot4.imshow(flirframe_4, cmap=cm.gnuplot2)
-        subplot4.set_title("+"+ str(flirframe) +" frame")
+        subplot4.set_title(str(flirframe) +" frame")
 
         subplot5=fig.add_subplot(2, 3, 5)
         subplot5.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)
@@ -272,7 +270,7 @@ class FlirPretreatment():
         flir = flirimageextractor.FlirImageExtractor(palettes=self.palettes)                       # 熱影像轉換套件
         flir.process_image(imgPath)       
         flirRGB = flir.extract_embedded_image()                                                     # 輸出 RGB
-        flirHot = flir.get_thermal_np()                                                             # 輸出 1/2 大小熱影像資訊
+        flirHot = flir.get_thermal_np()                                                             # 輸出熱影像資訊
         
         return flirRGB, flirHot
     
@@ -328,7 +326,7 @@ class FlirPretreatment():
 
 if __name__ == '__main__':
     palettes = [cm.gnuplot2]                        # 影像調色板
-    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\感染前期')   # 輸入路徑
+    imgPath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
     # imgPath = os.walk(r'sample\\all_information')   # 輸入路徑
     savePath = r'sample\\frame_save\\感染前期_標準差與溫差4度檢視'
 
