@@ -15,9 +15,8 @@ logging.basicConfig(level=logging.ERROR)          # 避免出現WARNINIG
 
 
 class flir_img_split:
-    def __init__(self, imgPath, palettes, savePath):
+    def __init__(self, imgPath, palettes):
         self.imgPath = imgPath
-        self.savePath = savePath
         self.palettes = palettes
         pass
 
@@ -37,32 +36,48 @@ class flir_img_split:
         flirHot = flir.get_thermal_np()                                                             # 輸出熱影像資訊
         
         return flirRGB, flirHot
+    
+    def makeMask(self, flirHot):                                        # 圈出溫差 N度內範圍 
+        autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
+        flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均                 
+        
+        flimask = flirHot.copy()        
+        flimask[flirHot < flirMean] = 0                                                             # 產生遮罩
+
+        normalObject = autoNormal.copy()                                                            # 二質化
+        normalObject[flimask < flirMean] = 0
+
+        hotObject = flirHot.copy()
+        hotObject[flimask < 255] = 0
+
+        return normalObject
 
     def saveCmap(self, flirHot, pltSavepath = None):           # 轉換色彩地圖後儲存
-        plt.imshow(flirHot, cmap=cm.gnuplot2)                                                       # 顯示
-        plt.axis('off')                                                                             # 關閉邊框
+        
         if pltSavepath:                                                                             # 如果有儲存地址
             print("save at:"+ str(pltSavepath))
+            plt.axis('off')                                                                             # 關閉邊框
             plt.imsave(pltSavepath, flirHot, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
             plt.close('all')                                                                        # 不顯示影像
-        plt.show()
+        else:
+            plt.imshow(flirHot, cmap=cm.gnuplot2)                                                       # 顯示
+            plt.show()
 
 
 if __name__ == '__main__':
     imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
-    savePath = r'splitImg\flir'
+    saveImgpath = r'splitImg\flir_background\0_Ischemia'
     palettes = [cm.gnuplot2]                        # 影像調色板
 
-    flirSplit = flir_img_split(imgInputpath, savePath, palettes)
+    flirSplit = flir_img_split(imgInputpath, palettes)
+
     for imgPath in flirSplit.getImglist():
-        print(imgPath)
         flirRGB, flirHot = flirSplit.separateNP(imgPath)
-        print(np.shape(flirRGB), np.shape(flirHot))
-
+        normalObject = flirSplit.makeMask(flirHot)
         imgName = os.path.split(imgPath)[-1]
-        savePath = os.path.join(savePath, imgName)
-
+        savePath = os.path.join(saveImgpath, str('Ischemia_') + imgName)
         flirSplit.saveCmap(flirHot, savePath)
-        break
+
+        # break
         
 
