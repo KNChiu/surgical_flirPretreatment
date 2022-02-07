@@ -55,7 +55,7 @@ class FlirPretreatment():
         plt.show()
         # plt.close('all')
 
-    def drawHist_frame(self, flirHot, flirframe):                                   # 畫出溫度範圍直線圖
+    def drawHist_frame(self, flirHot, flirframe=0):                                   # 畫出溫度範圍直線圖
         plt.hist(flirHot, 35, [15, 35])     # 繪製直線圖
         plt.xlim([15, 35])
         plt.ylim([0, 400])
@@ -309,6 +309,7 @@ class FlirPretreatment():
                 # self.drawHist(flirHot, flirMean)
                 temperDiffer = -1.5
                 confiDence = 0.6826
+                self.drawHist_frame(flimask)
                 # conf_intveral = self.drawHist_Distribution(flimask, flirframe = temperDiffer, confidence = confiDence, normal = True, pltSavepath=None, drawLine = True)   # 畫出直線圖與分佈曲線
 
                 # # flimask[flimask < np.amax(flimask) - 4] = 0
