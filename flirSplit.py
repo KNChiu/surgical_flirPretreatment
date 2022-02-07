@@ -37,6 +37,76 @@ class flir_img_split:
         
         return flirRGB, flirHot
     
+    def drawMeanhist(self, flirHot, imgName):                # 畫出溫度分佈與背景均值位置
+        # 原始輸入數據，直線圖用
+        flirFlatten = flirHot.flatten()             # 攤平數據
+        flirMean = flirFlatten.mean()               # 計算均值
+        
+
+        # 去除背景(均值)後，直線圖用
+        flirHistremove = flirFlatten.copy()
+        flirHistremove[flirHistremove < flirMean] = 0
+
+        flirBoundary = flirHot.copy()                   # 患部與邊緣邊界
+        flirBoundary[flirHot <= (flirMean - 0.5)] = 0   # 均值剛好為患部與背景的邊緣
+        flirBoundary[flirHot >= (flirMean + 0.5)] = 0
+
+        autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
+        normalObject = autoNormal.copy()                                                        
+        normalObject[flimask < flirMean] = 0                                                    # 去背景
+
+
+        fig, ax1 = plt.subplots()
+        plt.title("Thermal Distribution")
+        plt.xlabel("Thermal")
+        plt.xlim([15, 35])
+
+        ax1.set_ylabel("accumulation")
+        # l1 = ax1.vlines(flirMean, 0, 70000, linestyles ="-", color="red")                       # 畫出均值位置
+        # l2 = ax1.vlines(dataRange + flirframe, 0, 7000, linestyles ="dotted", color="orange")
+        #l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles="-.", color="green")
+        ax1 = sns.distplot(flirHistremove, bins = 35, norm_hist=False, kde=False) 
+        # plt.legend(handles=[l1], labels=['Thermal mean'], loc='upper right')                    # 圖例
+        fig.tight_layout()
+
+        fig1 = plt.figure()
+        subplot1=fig1.add_subplot(1, 3, 1)
+        subplot1.imshow(flirHot, cmap=cm.gnuplot2)              # 溫度影像
+        subplot1.set_title("Flir Image")
+
+        subplot2=fig1.add_subplot(1, 3, 2)
+        subplot2.imshow(flirBoundary, cmap=cm.gnuplot2)         # 患部與背景邊界
+        subplot2.set_title("Flir Boundary")
+
+        subplot3=fig1.add_subplot(1, 3, 3)
+        subplot3.imshow(normalObject, cmap=cm.gnuplot2)         # 去除背景後影像
+        subplot3.set_title("Remove Background")
+        fig1.tight_layout()
+
+        # figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MEAN Thermal :"+ str(round(np.mean(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
+        # fig.suptitle(figTitle)
+        
+        pathNoextension = imgName.split('.')[0]
+
+        fig1_pltSavepath = fig_pltSavepath = None
+        # fig1_pltSavepath = r'結果存圖\論文\熱影像_邊界_去背比較' + '\\' + pathNoextension + "_fire_boundary_remove.jpg"     # 患部影像
+        fig_pltSavepath = r'結果存圖\論文\溫度分佈狀況\去除背景' + '\\' + pathNoextension + "_fire_background_remove_hist.jpg"     # 患部影像
+
+
+        if fig1_pltSavepath:
+            print("save at:"+ str(fig1_pltSavepath))
+            fig1.savefig(fig1_pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+
+        if fig_pltSavepath:
+            print("save at:"+ str(fig_pltSavepath))
+            fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+
+        plt.show()
+        # return conf_intveral
+    
+
     def makeMask(self, flirHot):                                        # 圈出溫差 N度內範圍 
         autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
         flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均                 
@@ -78,7 +148,7 @@ class flir_img_split:
         flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(flimask, confidence = 0.6826)               # 畫出左右標準差的值(缺血與發炎)
         
         distribution_save = []
-        print("flirMode :", flirMode)
+        # print("flirMode :", flirMode)
         # if flirMode == 'Ischemia':                                      # 如果是缺血使用左邊標準差數據
         #     distribution_save = flirframe_distribution_Left
         # elif flirMode == 'Infect':                                      # 如果是發炎使用右邊標準差數據
@@ -104,7 +174,7 @@ class flir_img_split:
 
 if __name__ == '__main__':
     imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
-    saveImgpath = r'splitImg\\flir_background\0_Ischemia'
+    saveImgpath = r'splitImg\flir\20220124\0_Ischemia'
     palettes = [cm.gnuplot2]                        # 影像調色板
 
     flirSplit = flir_img_split(imgInputpath, palettes)
@@ -115,7 +185,10 @@ if __name__ == '__main__':
 
         imgName = os.path.split(imgPath)[-1]
         savePath = os.path.join(saveImgpath, imgName)
-        flirSplit.saveCmap(flirHot, flirMode = 'Infect', pltSavepath = savePath)
+
+        flirSplit.drawMeanhist(flirHot, imgName)         # 畫出背景與患部溫度分佈圖
+
+        # flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = savePath)
 
         # break
         
