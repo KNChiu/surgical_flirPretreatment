@@ -134,6 +134,40 @@ class flir_img_split:
 
         return flimask, normalObject, hotObject
 
+    def drawMask(self, flirRGB, flirHot, flimask, normalObject, pltSavepath):       
+        """                           
+        自訂函數 : 畫出患者範圍
+        """
+    
+        flirRGB = cv2.resize(flirRGB, (int(flirHot.shape[1]), int(flirHot.shape[0])))
+
+        fig = plt.figure()
+        subplot1=fig.add_subplot(1, 3, 1)       
+        subplot1.imshow(flirRGB)                            # 顯示 RGB影像
+        subplot1.set_title("RGB image")
+
+        subplot2=fig.add_subplot(1, 3, 2)
+        subplot2.imshow(flirHot, cmap=cm.gnuplot2)
+        subplot2.set_title("Flir image")                    # 溫度影像
+
+        # subplot3=fig.add_subplot(1, 4, 3)
+        # subplot3.imshow(flimask)
+        # subplot3.set_title("Thresh Mask")                   # 遮罩影像
+
+        subplot3=fig.add_subplot(1, 3, 3)
+        subplot3.imshow(normalObject, cmap=cm.gnuplot2)
+        subplot3.set_title("Image Matting")
+
+        # figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
+        # fig.suptitle("")
+        fig.tight_layout()
+
+        if pltSavepath:
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+        plt.show()
+
+
     def flirframe_distribution(self, flimask, confidence):
         """                           
         自訂函數 : 畫出左右標準差的值
@@ -193,22 +227,26 @@ class flir_img_split:
 
 
 if __name__ == '__main__':
-    imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
-    saveImgpath = r'splitImg\flir\20220124\0_Ischemia'
+    imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片')   # 輸入路徑
+    saveImgpath = r'結果存圖\論文\原始影像_熱影像_去背'
     palettes = [cm.gnuplot2]                        # 影像調色板
 
     flirSplit = flir_img_split(imgInputpath, palettes)
 
     for imgPath in flirSplit.getImglist():
-        flirRGB, flirHot = flirSplit.separateNP(imgPath)
-        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot)
-
+        # print(imgPath)
         imgName = os.path.split(imgPath)[-1]
         savePath = os.path.join(saveImgpath, imgName)
 
+        flirRGB, flirHot = flirSplit.separateNP(imgPath)
+        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot)
+        flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
+
+        
+
         # flirSplit.drawMeanhist(flirHot, imgName)         # 畫出背景與患部溫度分佈圖
 
-        flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = None)
+        # flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = None)
 
         # break
         
