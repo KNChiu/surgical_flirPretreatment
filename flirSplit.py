@@ -20,7 +20,11 @@ class flir_img_split:
         self.palettes = palettes
         pass
 
-    def getImglist(self):                           # 取得每個影像路徑
+    def getImglist(self):
+        """                           
+        自訂函數 : 取得每個影像路徑
+        """
+
         imgPathlist = []
         for path, dir_list, file_list in self.imgPath:                               
             for file_name in file_list:
@@ -29,7 +33,11 @@ class flir_img_split:
                 
         return imgPathlist
 
-    def separateNP(self, imgPath):     # 分離原始圖像與溫度影像
+    def separateNP(self, imgPath):     
+        """                           
+        自訂函數 : 分離原始圖像與溫度影像
+        """
+
         flir = flirimageextractor.FlirImageExtractor(palettes=self.palettes)                        # 熱影像轉換套件
         flir.process_image(imgPath)       
         flirRGB = flir.extract_embedded_image()                                                     # 輸出 RGB
@@ -37,7 +45,10 @@ class flir_img_split:
         
         return flirRGB, flirHot
     
-    def drawMeanhist(self, flirHot, imgName):                # 畫出溫度分佈與背景均值位置
+    def drawMeanhist(self, flirHot, imgName):    
+        """                           
+        自訂函數 : 畫出溫度分佈與背景均值位置
+        """            
         # 原始輸入數據，直線圖用
         flirFlatten = flirHot.flatten()             # 攤平數據
         flirMean = flirFlatten.mean()               # 計算均值
@@ -62,9 +73,7 @@ class flir_img_split:
         plt.xlim([15, 35])
 
         ax1.set_ylabel("accumulation")
-        # l1 = ax1.vlines(flirMean, 0, 70000, linestyles ="-", color="red")                       # 畫出均值位置
-        # l2 = ax1.vlines(dataRange + flirframe, 0, 7000, linestyles ="dotted", color="orange")
-        #l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles="-.", color="green")
+        l1 = ax1.vlines(flirMean, 0, 70000, linestyles ="-", color="red")                       # 畫出均值位置
         ax1 = sns.distplot(flirHistremove, bins = 35, norm_hist=False, kde=False) 
         # plt.legend(handles=[l1], labels=['Thermal mean'], loc='upper right')                    # 圖例
         fig.tight_layout()
@@ -106,8 +115,11 @@ class flir_img_split:
         plt.show()
         # return conf_intveral
     
+    def makeMask(self, flirHot):                                 
+        """                           
+        自訂函數 : 圈出溫差 N度內範圍 
+        """
 
-    def makeMask(self, flirHot):                                        # 圈出溫差 N度內範圍 
         autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
         flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均                 
         
@@ -123,6 +135,10 @@ class flir_img_split:
         return flimask, normalObject, hotObject
 
     def flirframe_distribution(self, flimask, confidence):
+        """                           
+        自訂函數 : 畫出左右標準差的值
+        """
+
         x = flimask[flimask > 0]                        # 去除為0資料
         x = x.flatten()                                 # 攤平數據
         mean, std = x.mean(), x.std(ddof=1)             # 計算均值與標準差
@@ -144,7 +160,11 @@ class flir_img_split:
         return flirframe_distribution_Left, flirframe_distribution_right
 
 
-    def saveCmap(self, flirHot, flirMode, pltSavepath = None):           # 轉換色彩地圖後儲存
+    def saveCmap(self, flirHot, flirMode, pltSavepath = None):           
+        """                           
+        自訂函數 : 轉換色彩地圖後儲存
+        """
+        
         flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(flimask, confidence = 0.6826)               # 畫出左右標準差的值(缺血與發炎)
         
         distribution_save = []
@@ -186,9 +206,9 @@ if __name__ == '__main__':
         imgName = os.path.split(imgPath)[-1]
         savePath = os.path.join(saveImgpath, imgName)
 
-        flirSplit.drawMeanhist(flirHot, imgName)         # 畫出背景與患部溫度分佈圖
+        # flirSplit.drawMeanhist(flirHot, imgName)         # 畫出背景與患部溫度分佈圖
 
-        # flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = savePath)
+        flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = None)
 
         # break
         
