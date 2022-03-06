@@ -45,80 +45,98 @@ class flir_img_split:
         
         return flirRGB, flirHot
     
-    def drawMeanhist(self, flirHot, imgName, flimask):    
+    def drawHist(self, flirHot, imgName, flimask):    
         """                           
-        自訂函數 : 畫出溫度分佈與背景均值位置
+        自訂函數 : 畫出溫度分佈與背景均值與累績最低值位置
         """            
         # 原始輸入數據，直線圖用
         flirFlatten = flirHot.flatten()             # 攤平數據
-        # flirMean = flirFlatten.mean()               # 計算均值
-        flirMean = 22.25
+        flirMean = flirFlatten.mean()               # 計算均值
+
+        # 計算區域最低
+        localrange = np.array(plt.hist(flirFlatten, bins = 70)[0:2])
+
+        ## localrange[0] : 累積計數值
+        ## localrange[1] : 對應溫度值
+
+
+        offset = 8
+        Meanindex = (np.abs(localrange[1]-flirMean)).argmin()                           # 找出最接近平均值在陣列中的位置 
+        Minindex = localrange[0][Meanindex - offset : Meanindex + offset].argmin()      # 找出 Meanindex 正負 offst 範圍內累積計數值最低的位置 
+        localMin = localrange[1][Meanindex - offset + Minindex]                         # 回傳範圍內累積數量最低的對應溫度值
+
+        savePath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像'
         
+        def draw_Mean_Min(flirMean, labelName):
+            
+            # 去除背景(均值)後，直線圖用
+            flirHistremove = flirFlatten.copy()
+            flirHistremove[flirHistremove < flirMean] = 0
 
-        # 去除背景(均值)後，直線圖用
-        flirHistremove = flirFlatten.copy()
-        flirHistremove[flirHistremove < flirMean] = 0
-
-        flirBoundary = flirHot.copy()                   # 遮罩
-        # flirBoundary[flirHot <= (flirMean - 0.5)] = 0   # 均值剛好為患部與背景的邊緣
-        # flirBoundary[flirHot >= (flirMean + 0.5)] = 0
-        flirBoundary[flirHot >= flirMean] = 255
-        flirBoundary[flirHot < flirMean] = 0
-
-
-        autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
-        normalObject = autoNormal.copy()                                                        
-        normalObject[flimask < flirMean] = 0                                                    # 去背景
+            flirBoundary = flirHot.copy()                   # 遮罩
+            # flirBoundary[flirHot <= (flirMean - 0.5)] = 0   # 均值剛好為患部與背景的邊緣
+            # flirBoundary[flirHot >= (flirMean + 0.5)] = 0
+            flirBoundary[flirHot >= flirMean] = 255
+            flirBoundary[flirHot < flirMean] = 0
 
 
-        fig, ax1 = plt.subplots()
-        plt.title("Thermal Distribution")
-        plt.xlabel("Thermal")
-        plt.xlim([15, 35])
-
-        ax1.set_ylabel("accumulation")
-        ax1 = sns.distplot(flirHot, bins = 70, norm_hist=False, kde=False)                 # 畫出直方圖
-        l1 = ax1.vlines(flirMean, 0, 25000, linestyles ="-", color="red")                       # 畫出均值位置
-        plt.legend(handles=[l1], labels=['Local min'], loc='upper right')                    # 圖例
-        fig.tight_layout()
-
-        fig1 = plt.figure()
-        subplot1=fig1.add_subplot(1, 3, 1)
-        subplot1.imshow(flirHot, cmap=cm.gnuplot2)              # 溫度影像
-        subplot1.set_title("Flir Image")
-
-        subplot2=fig1.add_subplot(1, 3, 2)
-        subplot2.imshow(flirBoundary)                           # 遮罩
-        subplot2.set_title("Thresh Mask")
-
-        subplot3=fig1.add_subplot(1, 3, 3)
-        subplot3.imshow(normalObject, cmap=cm.gnuplot2)         # 去除背景後影像
-        subplot3.set_title("Remove Background")
-        fig1.tight_layout()
-
-        # figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MEAN Thermal :"+ str(round(np.mean(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
-        # fig.suptitle(figTitle)
-        
-        pathNoextension = imgName.split('.')[0]
-
-        fig1_pltSavepath = fig_pltSavepath = None
-        fig1_pltSavepath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像' + '\\' + pathNoextension + "_fire_boundary_remove_min.jpg"     # 患部影像
-        fig_pltSavepath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像' + '\\' + pathNoextension + "_fire_hist_min.jpg"     # 患部影像
+            autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
+            normalObject = autoNormal.copy()                                                        
+            normalObject[flimask < flirMean] = 0                                                    # 去背景
 
 
-        if fig1_pltSavepath:
-            print("save at:"+ str(fig1_pltSavepath))
-            fig1.savefig(fig1_pltSavepath, dpi=1000, bbox_inches='tight')
-            plt.close('all')
+            fig, ax1 = plt.subplots()
+            plt.title("Thermal Distribution")
+            plt.xlabel("Thermal")
+            plt.xlim([15, 35])
 
-        if fig_pltSavepath:
-            print("save at:"+ str(fig_pltSavepath))
-            fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
-            plt.close('all')
+            ax1.set_ylabel("accumulation")
+            ax1 = sns.distplot(flirHot, bins = 70, norm_hist=False, kde=False)                 # 畫出直方圖
+            l1 = ax1.vlines(flirMean, 0, 25000, linestyles ="-", color="red")                       # 畫出均值位置
+            plt.legend(handles=[l1], labels=[str(labelName)], loc='upper right')                    # 圖例
+            fig.tight_layout()
 
-        plt.show()
-        # return conf_intveral
-    
+            fig1 = plt.figure()
+            subplot1=fig1.add_subplot(1, 3, 1)
+            subplot1.imshow(flirHot, cmap=cm.gnuplot2)              # 溫度影像
+            subplot1.set_title("Flir Image")
+
+            subplot2=fig1.add_subplot(1, 3, 2)
+            subplot2.imshow(flirBoundary)                           # 遮罩
+            subplot2.set_title("Thresh Mask")
+
+            subplot3=fig1.add_subplot(1, 3, 3)
+            subplot3.imshow(normalObject, cmap=cm.gnuplot2)         # 去除背景後影像
+            subplot3.set_title("Remove Background")
+            fig1.tight_layout()
+
+            # figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MEAN Thermal :"+ str(round(np.mean(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
+            # fig.suptitle(figTitle)
+
+            fig1_pltSavepath = fig_pltSavepath = None
+            pathNoextension = imgName.split('.')[0]
+            fig1_pltSavepath = savePath + '\\' + pathNoextension + "_fire_remove_" + str(labelName) + ".jpg"     # 患部影像
+            fig_pltSavepath = savePath + '\\' + pathNoextension + "_fire_hist_" + str(labelName) + ".jpg"       # 患部直線圖
+
+            if fig1_pltSavepath:
+                print("save at:"+ str(fig1_pltSavepath))
+                fig1.savefig(fig1_pltSavepath, dpi=1000, bbox_inches='tight')
+                plt.close('all')
+
+            if fig_pltSavepath:
+                print("save at:"+ str(fig_pltSavepath))
+                fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
+                plt.close('all')
+
+            plt.show()
+            # return conf_intveral
+
+        draw_Mean_Min(flirMean, 'Global Mean')
+        draw_Mean_Min(localMin, 'Local Minimum')
+
+
+
+
     def makeMask(self, flirHot):                                 
         """                           
         自訂函數 : 圈出溫差 N度內範圍 
@@ -251,7 +269,7 @@ if __name__ == '__main__':
 
         
 
-        flirSplit.drawMeanhist(flirHot, imgName, flimask)         # 畫出背景與患部溫度分佈圖
+        flirSplit.drawHist(flirHot, imgName, flimask)         # 畫出背景與患部溫度分佈圖
 
         # flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = None)
 
