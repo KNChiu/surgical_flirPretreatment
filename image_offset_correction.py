@@ -98,12 +98,4 @@ if __name__ == '__main__':
         plt.tight_layout()
         plt.show()
 
-        # break
-
-        # localMin = flirSplit.drawBackgroundhist(flirHot, imgName, outputImg=True)            # 畫出背景與患部溫度分佈圖
-        # flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin)    
-        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
-
-        # flirSplit.saveCmap(normalObject, flimask, pltSavepath = None)
-
-        # break
+        break
