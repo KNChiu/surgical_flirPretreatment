@@ -45,7 +45,7 @@ class flir_img_split:
         
         return flirRGB, flirHot
     
-    def drawHist(self, flirHot, imgName, flimask):    
+    def drawBackgroundhist(self, flirHot, imgName, outputImg, savePath):    
         """                           
         自訂函數 : 畫出溫度分佈與背景均值與累績最低值位置
         """            
@@ -65,7 +65,7 @@ class flir_img_split:
         Minindex = localrange[0][Meanindex - offset : Meanindex + offset].argmin()      # 找出 Meanindex 正負 offst 範圍內累積計數值最低的位置 
         localMin = localrange[1][Meanindex - offset + Minindex]                         # 回傳範圍內累積數量最低的對應溫度值
 
-        savePath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像'
+        # savePath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像'
         
         def draw_Mean_Min(flirMean, labelName):
             
@@ -81,7 +81,10 @@ class flir_img_split:
 
 
             autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
-            normalObject = autoNormal.copy()                                                        
+            normalObject = autoNormal.copy()    
+            
+            flimask = flirHot.copy()        
+            flimask[flirHot < localMin] = 0                                                             # 產生遮罩                                                    
             normalObject[flimask < flirMean] = 0                                                    # 去背景
 
 
@@ -129,30 +132,48 @@ class flir_img_split:
                 plt.close('all')
 
             plt.show()
+        plt.close('all')
+
             # return conf_intveral
 
-        draw_Mean_Min(flirMean, 'Global Mean')
-        draw_Mean_Min(localMin, 'Local Minimum')
+        if outputImg :
+            draw_Mean_Min(flirMean, 'Global Mean')
+            draw_Mean_Min(localMin, 'Local Minimum')
 
+        return localMin
 
+    def fixMask(self, flimask):
+        '''自訂函數 : 修復遮罩影像'''
+        flimask = flimask.astype(np.uint8)
+        flimask[flimask > 0] = 255 
 
+        # 尋找階層輪廓
+        contours, hierarchy = cv2.findContours(flimask, cv2.RETR_CCOMP, 2)
+        hierarchy = np.squeeze(hierarchy)       # (1, 6, 4) -> (6, 4)
 
-    def makeMask(self, flirHot):                                 
+        for i in range(len(contours)):  # 找出父輪廓內的子輪廓填充
+            if (hierarchy[i][3] != -1):
+                cv2.drawContours(flimask, contours, i, (255), -1)
+        return flimask
+
+    def makeMask(self, flirHot, localMin):                                 
         """                           
         自訂函數 : 圈出溫差 N度內範圍 
         """
 
         autoNormal = (flirHot - np.amin(flirHot)) / (np.amax(flirHot) - np.amin(flirHot))       # 標準化到 0~1 之間
-        flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均                 
+        # flirMean = flirHot.mean()                                                                 # 計算整張熱影像平均                 
         
         flimask = flirHot.copy()        
-        flimask[flirHot < flirMean] = 0                                                             # 產生遮罩
+        flimask[flirHot < localMin] = 0  
+        
+        flimask = flirSplit.fixMask(flimask)
 
         normalObject = autoNormal.copy()                                                            # 二質化
-        normalObject[flimask < flirMean] = 0
+        normalObject[flimask == 0] = 0
 
         hotObject = flirHot.copy()
-        hotObject[flimask < 255] = 0
+        hotObject[flimask == 0] = 0
 
         return flimask, normalObject, hotObject
 
@@ -200,15 +221,9 @@ class flir_img_split:
         mean, std = x.mean(), x.std(ddof=1)             # 計算均值與標準差
         conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)        # 取得信心區間 
         print(str(confidence*100) + "%信賴區間", conf_intveral)
-
-
-        # flirHot[flimask < 255] = 0
-        x = flimask[flimask > 0]                                                # 去除為0資料
-        x = x.flatten()                                                         # 攤平數據
         
         flirframe_distribution_Left = normalObject.copy()
         flirframe_distribution_right = normalObject.copy()
-
 
         flirframe_distribution_Left[flirHot < conf_intveral[0]] = 0         
         flirframe_distribution_right[flirHot < conf_intveral[1]] = 0    
@@ -216,7 +231,7 @@ class flir_img_split:
         return flirframe_distribution_Left, flirframe_distribution_right
 
 
-    def saveCmap(self, flirHot, flirMode, pltSavepath = None):           
+    def saveCmap(self, flirHot, flimask, pltSavepath = None):           
         """                           
         自訂函數 : 轉換色彩地圖後儲存
         """
@@ -264,14 +279,13 @@ if __name__ == '__main__':
         savePath = os.path.join(saveImgpath, imgName)
 
         flirRGB, flirHot = flirSplit.separateNP(imgPath)
-        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot)
-        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
+        localMin = flirSplit.drawBackgroundhist(flirHot, imgName, outputImg=False, savePath=saveImgpath)            # 畫出背景與患部溫度分佈圖
+        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin) 
 
         
+        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
 
-        flirSplit.drawHist(flirHot, imgName, flimask)         # 畫出背景與患部溫度分佈圖
-
-        # flirSplit.saveCmap(normalObject, flirMode = 'Infect', pltSavepath = None)
+        flirSplit.saveCmap(normalObject, flimask, pltSavepath = None)
 
         # break
         
