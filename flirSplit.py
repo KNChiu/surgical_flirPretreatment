@@ -142,13 +142,18 @@ class flir_img_split:
 
         return localMin
 
-    def fixMask(self, flimask):
+    def fixMask(self, flimask, pltSavepath = None):
         '''自訂函數 : 修復遮罩影像'''
 
         fig = plt.figure()
-        subplot1=fig.add_subplot(1, 3, 1)       
+        subplot1=fig.add_subplot(1, 4, 1)       
         subplot1.imshow(flimask)                            
         subplot1.set_title("original")
+
+        # 閉運算
+        # kernel = np.ones((13,13), np.uint8)
+        # flimask = cv2.dilate(flimask, kernel ,iterations=2)
+        # flimask = cv2.erode(flimask, kernel ,iterations=2)
 
         # 尋找階層輪廓
         contours, hierarchy = cv2.findContours(flimask, cv2.RETR_CCOMP, 2)
@@ -159,31 +164,46 @@ class flir_img_split:
                 if (hierarchy[i][3] != -1):
                     cv2.drawContours(flimask, contours, i, (255), -1)
 
-        subplot2=fig.add_subplot(1, 3, 2)       
+        subplot2=fig.add_subplot(1, 4, 2)       
         subplot2.imshow(flimask)                            
         subplot2.set_title("Contours")
 
+        # 開運算
+        kernel = np.ones((13,13), np.uint8)
+        flimask = cv2.erode(flimask, kernel ,iterations=2)
+        flimask = cv2.dilate(flimask, kernel ,iterations=2)
 
-        kernel = np.ones((11,11), np.uint8)
-
-        for i in range(2):
-            flimask = cv2.erode(flimask, kernel ,iterations=3)
-            flimask = cv2.dilate(flimask, kernel ,iterations=3)
-
-
-
-
-        subplot3=fig.add_subplot(1, 3, 3)       
+        subplot3=fig.add_subplot(1, 4, 3)       
         subplot3.imshow(flimask)                            
-        subplot3.set_title("opening")
+        subplot3.set_title("Opening")
 
+
+        # 使用連通域面積方式
+        num_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(flimask, connectivity=8)
+        # num_labels : 連通域數量
+        # labels : 對象素點標註
+        # stats : 列出 x、y、width、height、面積
+        for label in range(num_labels):         # 連通域數量
+            if stats[label][4] < 20000:
+                flimask[labels == label] = 0
+
+        subplot4=fig.add_subplot(1, 4, 4)       
+        subplot4.imshow(flimask)                            
+        subplot4.set_title("Connected")
 
         fig.tight_layout()
-        plt.show()
+
+        if pltSavepath:
+            pathNoextension = pltSavepath.split('.')[0]
+            flirPath = pathNoextension + '_fixMask' + '.jpg'
+            fig.savefig(flirPath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+        else:
+            plt.show()
 
         return flimask
 
-    def makeMask(self, flirHot, localMin, fixmask = True):                                 
+    def makeMask(self, flirHot, localMin, fixmask = True, pltSavepath = None):                                 
         """                           
         自訂函數 : 圈出溫差 N度內範圍 
         """
@@ -197,7 +217,7 @@ class flir_img_split:
         flimask[flimask > 0] = 255 
 
         if fixmask:
-            flimask = self.fixMask(flimask)
+            flimask = self.fixMask(flimask, pltSavepath)
 
         normalObject = autoNormal.copy()                                                            # 二質化
         normalObject[flimask == 0] = 0
@@ -236,9 +256,12 @@ class flir_img_split:
         fig.tight_layout()
 
         if pltSavepath:
-            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            pathNoextension = pltSavepath.split('.')[0]
+            flirPath = pathNoextension + '_fixFilr' + '.jpg'
+            fig.savefig(flirPath, dpi=1000, bbox_inches='tight')
             plt.close('all')
-        plt.show()
+        else:
+            plt.show()
 
 
     def flirframe_distribution(self, hotObject, confidence):
@@ -308,9 +331,9 @@ class flir_img_split:
 
 if __name__ == '__main__':
     # imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片')   # 輸入路徑
-    imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
+    imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸入影像')   # 輸入路徑
     # saveImgpath = r'結果存圖\論文\原始影像_熱影像_去背'
-    saveImgpath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像'
+    saveImgpath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像\統計'
 
     palettes = [cm.gnuplot2]                        # 影像調色板
 
@@ -327,10 +350,10 @@ if __name__ == '__main__':
         # flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = False) 
         # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = None)
 
-        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = True) 
-        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = None)
+        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = True, pltSavepath=savePath) 
+        flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
 
-        # flirSplit.saveCmap(normalObject, hotObject, pltSavepath = None)
+        flirSplit.saveCmap(normalObject, hotObject, pltSavepath = savePath)
 
         # break
         
