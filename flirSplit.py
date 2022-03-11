@@ -144,19 +144,46 @@ class flir_img_split:
 
     def fixMask(self, flimask):
         '''自訂函數 : 修復遮罩影像'''
-        flimask = flimask.astype(np.uint8)
-        flimask[flimask > 0] = 255 
+
+        fig = plt.figure()
+        subplot1=fig.add_subplot(1, 3, 1)       
+        subplot1.imshow(flimask)                            
+        subplot1.set_title("original")
 
         # 尋找階層輪廓
         contours, hierarchy = cv2.findContours(flimask, cv2.RETR_CCOMP, 2)
         hierarchy = np.squeeze(hierarchy)       # (1, 6, 4) -> (6, 4)
 
-        for i in range(len(contours)):  # 找出父輪廓內的子輪廓填充
-            if (hierarchy[i][3] != -1):
-                cv2.drawContours(flimask, contours, i, (255), -1)
+        if hierarchy.ndim > 1:              # 如果有子類再進行修復
+            for i in range(len(contours)):  # 找出父輪廓內的子輪廓填充
+                if (hierarchy[i][3] != -1):
+                    cv2.drawContours(flimask, contours, i, (255), -1)
+
+        subplot2=fig.add_subplot(1, 3, 2)       
+        subplot2.imshow(flimask)                            
+        subplot2.set_title("Contours")
+
+
+        kernel = np.ones((11,11), np.uint8)
+
+        for i in range(2):
+            flimask = cv2.erode(flimask, kernel ,iterations=3)
+            flimask = cv2.dilate(flimask, kernel ,iterations=3)
+
+
+
+
+        subplot3=fig.add_subplot(1, 3, 3)       
+        subplot3.imshow(flimask)                            
+        subplot3.set_title("opening")
+
+
+        fig.tight_layout()
+        plt.show()
+
         return flimask
 
-    def makeMask(self, flirHot, localMin):                                 
+    def makeMask(self, flirHot, localMin, fixmask = True):                                 
         """                           
         自訂函數 : 圈出溫差 N度內範圍 
         """
@@ -166,8 +193,11 @@ class flir_img_split:
         
         flimask = flirHot.copy()        
         flimask[flirHot < localMin] = 0  
-        
-        flimask = flirSplit.fixMask(flimask)
+        flimask = flimask.astype(np.uint8)
+        flimask[flimask > 0] = 255 
+
+        if fixmask:
+            flimask = self.fixMask(flimask)
 
         normalObject = autoNormal.copy()                                                            # 二質化
         normalObject[flimask == 0] = 0
@@ -185,19 +215,19 @@ class flir_img_split:
         flirRGB = cv2.resize(flirRGB, (int(flirHot.shape[1]), int(flirHot.shape[0])))
 
         fig = plt.figure()
-        subplot1=fig.add_subplot(1, 3, 1)       
+        subplot1=fig.add_subplot(1, 4, 1)       
         subplot1.imshow(flirRGB)                            # 顯示 RGB影像
         subplot1.set_title("RGB image")
 
-        subplot2=fig.add_subplot(1, 3, 2)
+        subplot2=fig.add_subplot(1, 4, 2)
         subplot2.imshow(flirHot, cmap=cm.gnuplot2)
         subplot2.set_title("Flir image")                    # 溫度影像
 
-        # subplot3=fig.add_subplot(1, 4, 3)
-        # subplot3.imshow(flimask)
-        # subplot3.set_title("Thresh Mask")                   # 遮罩影像
+        subplot3=fig.add_subplot(1, 4, 3)
+        subplot3.imshow(flimask)
+        subplot3.set_title("Thresh Mask")                   # 遮罩影像
 
-        subplot3=fig.add_subplot(1, 3, 3)
+        subplot3=fig.add_subplot(1, 4, 4)
         subplot3.imshow(normalObject, cmap=cm.gnuplot2)
         subplot3.set_title("Image Matting")
 
@@ -211,12 +241,12 @@ class flir_img_split:
         plt.show()
 
 
-    def flirframe_distribution(self, flimask, confidence):
+    def flirframe_distribution(self, hotObject, confidence):
         """                           
         自訂函數 : 畫出左右標準差的值
         """
 
-        x = flimask[flimask > 0]                        # 去除為0資料
+        x = hotObject[hotObject > 0]                        # 去除為0資料
         x = x.flatten()                                 # 攤平數據
         mean, std = x.mean(), x.std(ddof=1)             # 計算均值與標準差
         conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)        # 取得信心區間 
@@ -225,18 +255,20 @@ class flir_img_split:
         flirframe_distribution_Left = normalObject.copy()
         flirframe_distribution_right = normalObject.copy()
 
-        flirframe_distribution_Left[flirHot < conf_intveral[0]] = 0         
-        flirframe_distribution_right[flirHot < conf_intveral[1]] = 0    
+        flirframe_distribution_Left[hotObject > conf_intveral[0]] = 0 
+        # flirframe_distribution_Left[hotObject < conf_intveral[0]] = 0
+
+        flirframe_distribution_right[hotObject < conf_intveral[1]] = 0    
 
         return flirframe_distribution_Left, flirframe_distribution_right
 
 
-    def saveCmap(self, flirHot, flimask, pltSavepath = None):           
+    def saveCmap(self, flirHot, hotObject, pltSavepath = None):           
         """                           
         自訂函數 : 轉換色彩地圖後儲存
         """
         
-        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(flimask, confidence = 0.6826)               # 畫出左右標準差的值(缺血與發炎)
+        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(hotObject, confidence = 0.6826)               # 畫出左右標準差的值(缺血與發炎)
         
         distribution_save = []
         # print("flirMode :", flirMode)
@@ -253,19 +285,30 @@ class flir_img_split:
             distPath = pathNoextension + '_dist' + '.jpg'
             print("save at:"+ str(flirPath) + ', ' + str(distPath))
             plt.axis('off')                                                                             # 關閉邊框
-            plt.imsave(flirPath, flirHot, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
+            plt.imsave(flirPath, normalObject, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
             # plt.imsave(distPath, distribution_save, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
             plt.close('all')                                                                        # 不顯示影像
         else:
-            plt.imshow(flirHot, cmap=cm.gnuplot2)                                                       # 顯示溫度影像
-            plt.show()
-            plt.imshow(distribution_save, cmap=cm.gnuplot2)
+            fig = plt.figure()
+            subplot1=fig.add_subplot(1, 3, 1)  
+            subplot1.imshow(normalObject, cmap=cm.gnuplot2)                
+            subplot1.set_title("normalObject")                                       # 顯示溫度影像
+
+            subplot2=fig.add_subplot(1, 3, 2)  
+            subplot2.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)                
+            subplot2.set_title("distribution_Left")
+
+            subplot3=fig.add_subplot(1, 3, 3)  
+            subplot3.imshow(flirframe_distribution_right, cmap=cm.gnuplot2)                
+            subplot3.set_title("distribution_right")
+
+            fig.tight_layout()
             plt.show()
 
 
 if __name__ == '__main__':
     # imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片')   # 輸入路徑
-    imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸入影像')   # 輸入路徑
+    imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\Ischemia FLIR')   # 輸入路徑
     # saveImgpath = r'結果存圖\論文\原始影像_熱影像_去背'
     saveImgpath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像'
 
@@ -279,14 +322,18 @@ if __name__ == '__main__':
         savePath = os.path.join(saveImgpath, imgName)
 
         flirRGB, flirHot = flirSplit.separateNP(imgPath)
-        localMin = flirSplit.drawBackgroundhist(flirHot, imgName, outputImg=False, savePath=saveImgpath)            # 畫出背景與患部溫度分佈圖
-        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin) 
-
+        localMin = flirSplit.drawBackgroundhist(flirHot, imgName, outputImg=False, savePath=None)            # 畫出背景與患部溫度分佈圖
         
-        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
+        # flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = False) 
+        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = None)
 
-        flirSplit.saveCmap(normalObject, flimask, pltSavepath = None)
+        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = True) 
+        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = None)
+
+        # flirSplit.saveCmap(normalObject, hotObject, pltSavepath = None)
 
         # break
         
 
+
+# %%
