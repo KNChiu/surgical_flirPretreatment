@@ -403,12 +403,79 @@ class flir_img_split:
         plt.show()
         return conf_intveral
 
+    def drawHist_tempDifference(self, flirHot, flimask, normalObject, pltSavepath=None, drawLine = True):
+        '''自訂函數 : 繪製不同溫度區間直方圖與結果'''
+        
+        flirHot_removeBack = flirHot.copy()
+        flirHot_removeBack[flimask == 0] = 0               # 去除背景
+        flirHot_delet0 = flirHot_removeBack[flirHot_removeBack > 0]         # 去除為0資料
+        # flirHot_removeBack = flirHot_removeBack[flirHot_removeBack > 0]    
+        
+        mean = flirHot_delet0.mean()
+        flirMean = normalObject.copy()
+        flirMean[flirHot_removeBack > mean-1.5] = 0
+        print(mean)
+
+        max = flirHot_delet0.max()
+        flirMax = normalObject.copy()
+        flirMax[flirHot_removeBack > max-4] = 0
+
+        
+        fig, ax1 = plt.subplots()
+        plt.title("Thermal Distribution")
+        plt.xlabel("Thermal")
+        plt.xlim([15, 35])
+        # ax2 = ax1.twinx()
+
+        ax1.set_ylabel("Distribution")
+        if drawLine:
+            l1 = ax1.vlines(mean-1.5, 0, 0.5, linestyles ="-", color="red")
+            l2 = ax1.vlines(max-4, 0, 0.5, linestyles ="dotted", color="orange")
+            # l3 = ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
+            plt.legend(handles=[l1,l2],labels=['mean-1.5','max-4'],loc='upper right')
+        x = flirHot_delet0.flatten()
+        ax1 = sns.distplot(x , bins = 55, norm_hist=True, hist=True, kde=False)            # 使用SNS繪製
+        fig.tight_layout()
+
+        if pltSavepath:
+            pathNoextension = pltSavepath.split('.')[0]
+            flirPath = pathNoextension + '_mean-1.5_max-4_hist' + '.jpg'
+            print("save at:"+ str(flirPath))
+            fig.savefig(flirPath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+
+        fig1 = plt.figure()
+        subplot1=fig1.add_subplot(1, 3, 1)  
+        subplot1.imshow(normalObject, cmap=cm.gnuplot2)                
+        subplot1.set_title("Flir image")                                       # 顯示溫度影像
+
+        subplot2=fig1.add_subplot(1, 3, 2)  
+        subplot2.imshow(flirMean, cmap=cm.gnuplot2)                
+        subplot2.set_title("Mean -1.5")
+
+        subplot3=fig1.add_subplot(1, 3, 3)  
+        subplot3.imshow(flirMax, cmap=cm.gnuplot2)                
+        subplot3.set_title("Max -4")
+        fig1.tight_layout()
+
+        if pltSavepath:
+            pathNoextension = pltSavepath.split('.')[0]
+            flirPath = pathNoextension + '_mean-1.5_max-4_img' + '.jpg'
+            print("save at:"+ str(flirPath))
+            fig1.savefig(flirPath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+
+        
+        
+        plt.show()
+        
+
 
 if __name__ == '__main__':
     # imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片')   # 輸入路徑
     imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸入影像')   # 輸入路徑
     # saveImgpath = r'結果存圖\論文\原始影像_熱影像_去背'
-    saveImgpath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像\統計'
+    saveImgpath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸出影像\統計\溫度差'
 
     palettes = [cm.gnuplot2]                        # 影像調色板
 
@@ -430,8 +497,11 @@ if __name__ == '__main__':
         # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
         # flirSplit.drawHist(flirHot, flimask, vline=localMin, labelName='Local Minimum', savePath=None)
 
-        conf_intveral = flirSplit.drawHist_Distribution(flirHot, flimask, flirframe = 1.5, confidence = 0.6826, normal = True, pltSavepath=None, drawLine = True)   # 畫出直線圖與分佈曲線
-        flirSplit.saveCmap(normalObject, hotObject, pltSavepath = None)
+        
+        flirSplit.drawHist_tempDifference(flirHot, flimask, normalObject, pltSavepath=savePath, drawLine = True)
+        
+        # conf_intveral = flirSplit.drawHist_Distribution(flirHot, flimask, flirframe = 1.5, confidence = 0.6826, normal = True, pltSavepath=None, drawLine = True)   # 畫出直線圖與分佈曲線
+        # flirSplit.saveCmap(normalObject, hotObject, pltSavepath = None)
 
         # break
         
