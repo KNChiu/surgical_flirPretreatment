@@ -47,7 +47,6 @@ class flir_img_split:
     
     def drawHist(self, flirHot, flimask, vline, labelName, savePath=None):
         '''自訂函數 : 繪製直方圖'''
-        
         fig, ax1 = plt.subplots()
         plt.title("Thermal Distribution")
         plt.xlabel("Thermal")
@@ -61,12 +60,10 @@ class flir_img_split:
         plt.legend(handles=[l1], labels=[str(labelName)], loc='upper right')               # 圖例
         fig.tight_layout()
 
-        fig_pltSavepath = None
+        if savePath:
+            pathNoextension = savePath.split('.')[0]
+            fig_pltSavepath = pathNoextension + "_hist_" + str(labelName) + ".jpg"       # 患部直線圖
 
-        pathNoextension = savePath.split('.')[0]
-        fig_pltSavepath = pathNoextension + "_hist_" + str(labelName) + ".jpg"       # 患部直線圖
-
-        if fig_pltSavepath:
             print("save at:"+ str(fig_pltSavepath))
             fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
         else:
@@ -74,8 +71,7 @@ class flir_img_split:
 
         plt.close('all')
 
-
-    def draw_MeanMin_hist(self, flirHot, imgName, outputImg, savePath):    
+    def draw_MeanMin_hist(self, flirHot, outputImg, savePath):    
         """                           
         自訂函數 : 畫出(均值與區域最低)溫度分佈與背景均值與累績最低值位置
         """            
@@ -291,7 +287,6 @@ class flir_img_split:
         else:
             plt.show()
 
-
     def flirframe_distribution(self, hotObject, confidence):
         """                           
         自訂函數 : 畫出左右標準差的值
@@ -312,7 +307,6 @@ class flir_img_split:
         flirframe_distribution_right[hotObject < conf_intveral[1]] = 0    
 
         return flirframe_distribution_Left, flirframe_distribution_right
-
 
     def saveCmap(self, flirHot, hotObject, pltSavepath = None):           
         """                           
@@ -365,6 +359,50 @@ class flir_img_split:
         else:
             plt.show()
 
+    def drawHist_Distribution(self, flirHot, flimask, flirframe, confidence, normal, pltSavepath, drawLine):        # 畫出溫度範圍直線圖
+        '''自訂函數 : 繪製設定之溫度區間與標準差範圍'''
+        flirHot[flimask == 0] = 0                       # 去除背景
+        x = flirHot[flirHot > 0]                        # 去除為0資料
+        x = x.flatten()                                 # 攤平數據
+        mean, std = x.mean(), x.std(ddof=1)             # 計算均值與標準差
+        dataRange = x.mean()
+        conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)        # 取得信心區間 
+        # print(mean, std)
+        print("與平均溫差"+str(flirframe) + "度", dataRange + flirframe)
+        print(str(confidence*100) + "%信賴區間", conf_intveral)
+
+        fig, ax1 = plt.subplots()
+        plt.title("Thermal Distribution")
+        plt.xlabel("Thermal")
+        plt.xlim([15, 35])
+        # ax2 = ax1.twinx()
+        if normal == False:                                                         # 是否使用 normal 效果
+            ax1.set_ylabel("accumulation")
+            if drawLine:
+                l1 = ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
+                l2 = ax1.vlines(dataRange + flirframe, 0, 7000, linestyles ="dotted", color="orange")
+                l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
+            ax1 = sns.distplot(x, bins = 55, norm_hist=False, kde=False) 
+        else:
+            ax1.set_ylabel("Distribution")
+            if drawLine:
+                l1 = ax1.vlines(mean, 0, 0.5, linestyles ="-", color="red")
+                l2 = ax1.vlines(dataRange + flirframe, 0, 0.5, linestyles ="dotted", color="orange")
+                l3 = ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
+            ax1 = sns.distplot(x, bins = 55, norm_hist=True, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
+            # ax1 = sns.distplot(x, bins = 55, norm_hist=True, hist=True, kde=False)                       # 使用SNS繪製，強制擬合常態分佈
+        if drawLine:
+            plt.legend(handles=[l1,l2,l3],labels=['mean','mean+'+str(flirframe),str(confidence*100)+'%'],loc='upper right')
+            # plt.legend(handles=[l1,l2],labels=['max-4', 'mean-1.5'],loc='upper right')
+
+        fig.tight_layout()
+        if pltSavepath:
+            print("save at:"+ str(pltSavepath))
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+        plt.show()
+        return conf_intveral
+
 
 if __name__ == '__main__':
     # imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片')   # 輸入路徑
@@ -382,18 +420,18 @@ if __name__ == '__main__':
         savePath = os.path.join(saveImgpath, imgName)
 
         flirRGB, flirHot = flirSplit.separateNP(imgPath)
-        localMin = flirSplit.draw_MeanMin_hist(flirHot, imgName, outputImg=False, savePath=None)            # 畫出背景與患部溫度分佈圖
+        localMin = flirSplit.draw_MeanMin_hist(flirHot, outputImg=False, savePath=None)            # 畫出背景與患部溫度分佈圖
         
         # flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = False) 
         # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = None)
 
-        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = True, pltSavepath=savePath) 
-        flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
+        flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = True, pltSavepath=None)
 
-        flirSplit.drawHist(flirHot, flimask, vline=localMin, labelName='Local Minimum', savePath=savePath)
+        # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
+        # flirSplit.drawHist(flirHot, flimask, vline=localMin, labelName='Local Minimum', savePath=None)
 
-
-        # flirSplit.saveCmap(normalObject, hotObject, pltSavepath = savePath)
+        conf_intveral = flirSplit.drawHist_Distribution(flirHot, flimask, flirframe = 1.5, confidence = 0.6826, normal = True, pltSavepath=None, drawLine = True)   # 畫出直線圖與分佈曲線
+        flirSplit.saveCmap(normalObject, hotObject, pltSavepath = None)
 
         # break
         
