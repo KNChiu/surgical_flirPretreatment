@@ -45,9 +45,9 @@ class flir_img_split:
         
         return flirRGB, flirHot
     
-    def drawBackgroundhist(self, flirHot, imgName, outputImg, savePath):    
+    def draw_MeanMin_hist(self, flirHot, imgName, outputImg, savePath):    
         """                           
-        自訂函數 : 畫出溫度分佈與背景均值與累績最低值位置
+        自訂函數 : 畫出(均值與區域最低)溫度分佈與背景均值與累績最低值位置
         """            
         # 原始輸入數據，直線圖用
         flirFlatten = flirHot.flatten()             # 攤平數據
@@ -84,7 +84,7 @@ class flir_img_split:
             normalObject = autoNormal.copy()    
             
             flimask = flirHot.copy()        
-            flimask[flirHot < localMin] = 0                                                             # 產生遮罩                                                    
+            flimask[flirHot < localMin] = 0                                                         # 產生遮罩                                                    
             normalObject[flimask < flirMean] = 0                                                    # 去背景
 
 
@@ -354,7 +354,7 @@ if __name__ == '__main__':
         savePath = os.path.join(saveImgpath, imgName)
 
         flirRGB, flirHot = flirSplit.separateNP(imgPath)
-        localMin = flirSplit.drawBackgroundhist(flirHot, imgName, outputImg=False, savePath=None)            # 畫出背景與患部溫度分佈圖
+        localMin = flirSplit.draw_MeanMin_hist(flirHot, imgName, outputImg=False, savePath=None)            # 畫出背景與患部溫度分佈圖
         
         # flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = False) 
         # flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = None)
