@@ -45,6 +45,36 @@ class flir_img_split:
         
         return flirRGB, flirHot
     
+    def drawHist(self, flirHot, flimask, vline, labelName, savePath=None):
+        '''自訂函數 : 繪製直方圖'''
+        
+        fig, ax1 = plt.subplots()
+        plt.title("Thermal Distribution")
+        plt.xlabel("Thermal")
+        plt.xlim([15, 35])
+
+        flirHot[flimask == 0] = 0
+
+        ax1.set_ylabel("accumulation")
+        ax1 = sns.distplot(flirHot, bins = 70, norm_hist=False, kde=False)                 # 畫出直方圖
+        l1 = ax1.vlines(vline, 0, 25000, linestyles ="-", color="red")                  # 畫出均值位置
+        plt.legend(handles=[l1], labels=[str(labelName)], loc='upper right')               # 圖例
+        fig.tight_layout()
+
+        fig_pltSavepath = None
+
+        pathNoextension = savePath.split('.')[0]
+        fig_pltSavepath = pathNoextension + "_hist_" + str(labelName) + ".jpg"       # 患部直線圖
+
+        if fig_pltSavepath:
+            print("save at:"+ str(fig_pltSavepath))
+            fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
+        else:
+            plt.show()
+
+        plt.close('all')
+
+
     def draw_MeanMin_hist(self, flirHot, imgName, outputImg, savePath):    
         """                           
         自訂函數 : 畫出(均值與區域最低)溫度分佈與背景均值與累績最低值位置
@@ -88,16 +118,16 @@ class flir_img_split:
             normalObject[flimask < flirMean] = 0                                                    # 去背景
 
 
-            fig, ax1 = plt.subplots()
-            plt.title("Thermal Distribution")
-            plt.xlabel("Thermal")
-            plt.xlim([15, 35])
+            # fig, ax1 = plt.subplots()
+            # plt.title("Thermal Distribution")
+            # plt.xlabel("Thermal")
+            # plt.xlim([15, 35])
 
-            ax1.set_ylabel("accumulation")
-            ax1 = sns.distplot(flirHot, bins = 70, norm_hist=False, kde=False)                 # 畫出直方圖
-            l1 = ax1.vlines(flirMean, 0, 25000, linestyles ="-", color="red")                       # 畫出均值位置
-            plt.legend(handles=[l1], labels=[str(labelName)], loc='upper right')                    # 圖例
-            fig.tight_layout()
+            # ax1.set_ylabel("accumulation")
+            # ax1 = sns.distplot(flirHot, bins = 70, norm_hist=False, kde=False)                 # 畫出直方圖
+            # l1 = ax1.vlines(flirMean, 0, 25000, linestyles ="-", color="red")                       # 畫出均值位置
+            # plt.legend(handles=[l1], labels=[str(labelName)], loc='upper right')                    # 圖例
+            # fig.tight_layout()
 
             fig1 = plt.figure()
             subplot1=fig1.add_subplot(1, 3, 1)
@@ -115,21 +145,19 @@ class flir_img_split:
 
             # figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MEAN Thermal :"+ str(round(np.mean(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
             # fig.suptitle(figTitle)
+            if savePath:
+                pathNoextension = savePath.split('.')[0]
+                fig1_pltSavepath = pathNoextension + "_fire_remove_" + str(labelName) + ".jpg"     # 患部影像
+                # fig_pltSavepath = savePath + '\\' + pathNoextension + "_fire_hist_" + str(labelName) + ".jpg"       # 患部直線圖
 
-            fig1_pltSavepath = fig_pltSavepath = None
-            pathNoextension = imgName.split('.')[0]
-            fig1_pltSavepath = savePath + '\\' + pathNoextension + "_fire_remove_" + str(labelName) + ".jpg"     # 患部影像
-            fig_pltSavepath = savePath + '\\' + pathNoextension + "_fire_hist_" + str(labelName) + ".jpg"       # 患部直線圖
-
-            if fig1_pltSavepath:
                 print("save at:"+ str(fig1_pltSavepath))
                 fig1.savefig(fig1_pltSavepath, dpi=1000, bbox_inches='tight')
                 plt.close('all')
 
-            if fig_pltSavepath:
-                print("save at:"+ str(fig_pltSavepath))
-                fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
-                plt.close('all')
+            # if fig_pltSavepath:
+            #     print("save at:"+ str(fig_pltSavepath))
+            #     fig.savefig(fig_pltSavepath, dpi=1000, bbox_inches='tight')
+            #     plt.close('all')
 
             plt.show()
         plt.close('all')
@@ -235,21 +263,21 @@ class flir_img_split:
         flirRGB = cv2.resize(flirRGB, (int(flirHot.shape[1]), int(flirHot.shape[0])))
 
         fig = plt.figure()
-        subplot1=fig.add_subplot(1, 4, 1)       
-        subplot1.imshow(flirRGB)                            # 顯示 RGB影像
-        subplot1.set_title("RGB image")
+        # subplot1=fig.add_subplot(1, 4, 1)       
+        # subplot1.imshow(flirRGB)                            # 顯示 RGB影像
+        # subplot1.set_title("RGB image")
 
-        subplot2=fig.add_subplot(1, 4, 2)
+        subplot2=fig.add_subplot(1, 3, 1)
         subplot2.imshow(flirHot, cmap=cm.gnuplot2)
         subplot2.set_title("Flir image")                    # 溫度影像
 
-        subplot3=fig.add_subplot(1, 4, 3)
+        subplot3=fig.add_subplot(1, 3, 2)
         subplot3.imshow(flimask)
         subplot3.set_title("Thresh Mask")                   # 遮罩影像
 
-        subplot3=fig.add_subplot(1, 4, 4)
+        subplot3=fig.add_subplot(1, 3, 3)
         subplot3.imshow(normalObject, cmap=cm.gnuplot2)
-        subplot3.set_title("Image Matting")
+        subplot3.set_title("Remove Background")
 
         # figTitle = "MAX Thermal :"+ str(round(np.amax(flirHot), 2))+ "  |  " + "MIN Thermal :"+ str(round(np.amin(flirHot), 2))
         # fig.suptitle("")
@@ -362,7 +390,10 @@ if __name__ == '__main__':
         flimask, normalObject, hotObject = flirSplit.makeMask(flirHot, localMin, fixmask = True, pltSavepath=savePath) 
         flirSplit.drawMask(flirRGB, flirHot, flimask, normalObject, pltSavepath = savePath)
 
-        flirSplit.saveCmap(normalObject, hotObject, pltSavepath = savePath)
+        flirSplit.drawHist(flirHot, flimask, vline=localMin, labelName='Local Minimum', savePath=savePath)
+
+
+        # flirSplit.saveCmap(normalObject, hotObject, pltSavepath = savePath)
 
         # break
         
