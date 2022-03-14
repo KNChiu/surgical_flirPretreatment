@@ -302,30 +302,39 @@ class flir_img_split:
 
         distribution_save = flirframe_distribution_Left
 
+        fig = plt.figure()
+        subplot1=fig.add_subplot(1, 3, 1)  
+        subplot1.imshow(normalObject, cmap=cm.gnuplot2)                
+        subplot1.set_title("normalObject")                                       # 顯示溫度影像
+
+        subplot2=fig.add_subplot(1, 3, 2)  
+        subplot2.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)                
+        subplot2.set_title("Distribution Left")
+
+        subplot3=fig.add_subplot(1, 3, 3)  
+        subplot3.imshow(flirframe_distribution_right, cmap=cm.gnuplot2)                
+        subplot3.set_title("Distribution right")
+        fig.tight_layout()
+
+        save_one = False
+
         if pltSavepath:                                                                # 如果有儲存地址
-            pathNoextension = pltSavepath.split('.')[0]
-            flirPath = pathNoextension + '_flir' + '.jpg'
-            distPath = pathNoextension + '_dist' + '.jpg'
-            print("save at:"+ str(flirPath) + ', ' + str(distPath))
-            plt.axis('off')                                                                             # 關閉邊框
-            plt.imsave(flirPath, normalObject, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
-            # plt.imsave(distPath, distribution_save, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
+            if save_one:
+                pathNoextension = pltSavepath.split('.')[0]
+                flirPath = pathNoextension + '_flir' + '.jpg'
+                distPath = pathNoextension + '_dist' + '.jpg'
+                print("save at:"+ str(flirPath) + ', ' + str(distPath))
+                plt.axis('off')                                                                             # 關閉邊框
+                plt.imsave(flirPath, normalObject, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
+                # plt.imsave(distPath, distribution_save, cmap=cm.gnuplot2)                                      # 使用plt儲存轉換色彩地圖的影像
+            
+            else:
+                pathNoextension = pltSavepath.split('.')[0]
+                Path = pathNoextension + '_distribution_compare' + '.jpg'
+                fig.savefig(Path, dpi=1000, bbox_inches='tight')
+
             plt.close('all')                                                                        # 不顯示影像
         else:
-            fig = plt.figure()
-            subplot1=fig.add_subplot(1, 3, 1)  
-            subplot1.imshow(normalObject, cmap=cm.gnuplot2)                
-            subplot1.set_title("normalObject")                                       # 顯示溫度影像
-
-            subplot2=fig.add_subplot(1, 3, 2)  
-            subplot2.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)                
-            subplot2.set_title("distribution_Left")
-
-            subplot3=fig.add_subplot(1, 3, 3)  
-            subplot3.imshow(flirframe_distribution_right, cmap=cm.gnuplot2)                
-            subplot3.set_title("distribution_right")
-
-            fig.tight_layout()
             plt.show()
 
 
