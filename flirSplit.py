@@ -305,8 +305,8 @@ class flir_img_split:
         flirframe_distribution_Left = normalObject.copy()
         flirframe_distribution_right = normalObject.copy()
 
-        flirframe_distribution_Left[hotObject > conf_intveral[0]] = 0 
-        # flirframe_distribution_Left[hotObject < conf_intveral[0]] = 0
+        # flirframe_distribution_Left[hotObject > x.max()-4] = 0 
+        flirframe_distribution_Left[hotObject < conf_intveral[0]] = 0
 
         flirframe_distribution_right[hotObject < conf_intveral[1]] = 0    
 
@@ -317,14 +317,14 @@ class flir_img_split:
         自訂函數 : 轉換色彩地圖後儲存
         """
         
-        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(hotObject, confidence = 0.9545)               # 畫出左右標準差的值(缺血與發炎)
+        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(hotObject, confidence = 0.682)               # 畫出左右標準差的值(缺血與發炎)
         
         distribution_save = []
         # print("flirMode :", flirMode)
         # if flirMode == 'Ischemia':                                      # 如果是缺血使用左邊標準差數據
         #     distribution_save = flirframe_distribution_Left
         # elif flirMode == 'Infect':                                      # 如果是發炎使用右邊標準差數據
-            # distribution_save = flirframe_distribution_right
+        #     distribution_save = flirframe_distribution_right
 
         fig = plt.figure()
         subplot1=fig.add_subplot(1, 3, 1)  
@@ -344,7 +344,7 @@ class flir_img_split:
 
         # flirPath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\code\各項功能\結果存圖\論文\原始影像_熱影像_分隔去背比較\色彩地圖\\'+'2.jpg'
         # plt.axis('off')  
-        # plt.imsave(flirPath, flirframe_distribution_right, cmap=cm.gnuplot2)                
+        # plt.imsave(flirPath, flirframe_distribution_Left, cmap=cm.gnuplot2)                
 
         # distribution_Left_image = plt.imread(flirPath)
         # image = distribution_Left_image.copy()
@@ -428,7 +428,7 @@ if __name__ == '__main__':
 
         flirSplit.saveCmap(normalObject, hotObject, flimask, pltSavepath = None)
 
-        break
+        # break
         
 
 
