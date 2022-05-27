@@ -401,8 +401,13 @@ class flir_img_split:
         """                           
         自訂函數 : 標準差比較、藍色背景
         """
-        
-        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(hotObject, confidence = 0.682)               # 畫出左右標準差的值(缺血與發炎)
+
+        temperDiffer = 1.5  # 溫差
+        confiDence = 0.6826  # 分佈機率
+
+        distriPath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\code\各項功能\結果存圖\論文\原始影像_熱影像_分隔去背比較\色彩地圖\\'+'1.jpg'
+        self.drawHist_Distribution(hotObject, flirframe = temperDiffer, confidence = confiDence, normal = True, pltSavepath = distriPath, drawLine = True)   # 畫出直線圖與分佈曲線
+        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(hotObject, confidence = confiDence)               # 畫出左右標準差的值(缺血與發炎)
         
         # fig = plt.figure()
         # subplot1=fig.add_subplot(1, 3, 1)  
@@ -434,6 +439,49 @@ class flir_img_split:
         plt.imsave(flirPath1, image) 
 
 
+    def drawHist_Distribution(self, flimask, flirframe, confidence, normal, pltSavepath, drawLine):        # 畫出溫度範圍直線圖
+        x = flimask[flimask > 0]                        # 去除為0資料
+        x = x.flatten()                                 # 攤平數據
+        mean, std = x.mean(), x.std(ddof=1)             # 計算均值與標準差
+        dataRange = x.mean()
+        conf_intveral = stats.norm.interval(confidence, loc=mean, scale=std)        # 取得信心區間 
+        # print(mean, std)
+        print("與平均溫差"+str(flirframe) + "度", dataRange + flirframe)
+        print(str(confidence*100) + "%信賴區間", conf_intveral)
+
+        fig, ax1 = plt.subplots()
+        plt.title("Thermal Distribution")
+        plt.xlabel("Thermal")
+        plt.xlim([15, 35])
+        # ax2 = ax1.twinx()
+        if normal == False:                                                         # 是否使用 normal 效果
+            ax1.set_ylabel("accumulation")
+            if drawLine:
+                l1 = ax1.vlines(mean, 0, 7000, linestyles ="-", color="red")
+                l2 = ax1.vlines(dataRange + flirframe, 0, 7000, linestyles ="dotted", color="orange")
+                l3 = ax1.vlines(conf_intveral, 0, 7000, linestyles ="-.", color="green")
+            ax1 = sns.distplot(x, bins = 55, norm_hist=False, kde=False) 
+        else:
+            ax1.set_ylabel("Distribution")
+            if drawLine:
+                l1 = ax1.vlines(mean, 0, 0.5, linestyles ="-", color="red")
+                l2 = ax1.vlines(dataRange + flirframe, 0, 0.5, linestyles ="dotted", color="orange")
+                l2 = ax1.vlines(dataRange - flirframe, 0, 0.5, linestyles ="dotted", color="orange")
+                l3 = ax1.vlines(conf_intveral, 0, 0.5, linestyles ="-.", color="green")
+            ax1 = sns.distplot(x, bins = 55, norm_hist=True, hist=True, kde=False, fit=stats.norm)                       # 使用SNS繪製，強制擬合常態分佈
+            # ax1 = sns.distplot(x, bins = 55, norm_hist=True, hist=True, kde=False)                       # 使用SNS繪製，強制擬合常態分佈
+        if drawLine:
+            plt.legend(handles=[l1,l2,l3],labels=['mean','mean+'+str(flirframe),str(confidence*100)+'%'],loc='upper right')
+            # plt.legend(handles=[l1,l2],labels=['max-4', 'mean-1.5'],loc='upper right')
+
+        fig.tight_layout()
+        if pltSavepath:
+            print("save at:"+ str(pltSavepath))
+            fig.savefig(pltSavepath, dpi=1000, bbox_inches='tight')
+            plt.close('all')
+        plt.show()
+
+
 if __name__ == '__main__':
     # imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\傷口分類\Ischemia FLIR')   # 輸入路徑
     imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\範例圖像\輸入影像')   # 輸入路徑
@@ -463,6 +511,7 @@ if __name__ == '__main__':
 
 
         # flirSplit.saveCmap(normalObject, hotObject, flimask, pltSavepath = None)
+        
         flirSplit.deviation_comparison(normalObject, hotObject, flimask)
 
         break
