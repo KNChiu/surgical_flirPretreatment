@@ -306,7 +306,7 @@ class flir_img_split:
         flirframe_distribution_right = normalObject.copy()
 
         # flirframe_distribution_Left[hotObject > x.max()-4] = 0 
-        flirframe_distribution_Left[hotObject < conf_intveral[0]] = 0
+        flirframe_distribution_Left[hotObject > conf_intveral[0]] = 0
 
         flirframe_distribution_right[hotObject < conf_intveral[1]] = 0    
 
@@ -397,6 +397,42 @@ class flir_img_split:
         plt.imsave(flirPath, hotObject, cmap=self.palettes[0])
         plt.close('all') 
 
+    def deviation_comparison(self, flirHot, hotObject, flimask):           
+        """                           
+        自訂函數 : 標準差比較、藍色背景
+        """
+        
+        flirframe_distribution_Left, flirframe_distribution_right = self.flirframe_distribution(hotObject, confidence = 0.682)               # 畫出左右標準差的值(缺血與發炎)
+        
+        # fig = plt.figure()
+        # subplot1=fig.add_subplot(1, 3, 1)  
+        # subplot1.imshow(normalObject, cmap=cm.gnuplot2)                
+        # subplot1.set_title("normalObject")                                       # 顯示溫度影像
+
+        # subplot2=fig.add_subplot(1, 3, 2)  
+        # subplot2.imshow(flirframe_distribution_Left, cmap=cm.gnuplot2)                
+        # subplot2.set_title("Distribution Left")
+
+        # subplot3=fig.add_subplot(1, 3, 3)  
+        # subplot3.imshow(flirframe_distribution_right, cmap=cm.gnuplot2)                
+        # subplot3.set_title("Distribution right")
+        # fig.tight_layout()
+
+
+        flirPath = r'G:\我的雲端硬碟\Lab\Project\外科溫度\code\各項功能\結果存圖\論文\原始影像_熱影像_分隔去背比較\色彩地圖\\'+'2.jpg'
+        plt.axis('off')  
+        plt.imsave(flirPath, flirframe_distribution_Left, cmap=cm.gnuplot2)                
+
+        distribution_Left_image = plt.imread(flirPath)
+        image = distribution_Left_image.copy()
+        image[flimask==0] = [122, 195, 236]
+
+        flirPath1 = r'G:\我的雲端硬碟\Lab\Project\外科溫度\code\各項功能\結果存圖\論文\原始影像_熱影像_分隔去背比較\色彩地圖\\'+'5.jpg'
+        plt.axis('off')  
+        # plt.imshow(image)
+        # plt.show()
+        plt.imsave(flirPath1, image) 
+
 
 if __name__ == '__main__':
     # imgInputpath = os.walk(r'G:\我的雲端硬碟\Lab\Project\外科溫度\醫師分享圖片\傷口分類\Ischemia FLIR')   # 輸入路徑
@@ -426,9 +462,10 @@ if __name__ == '__main__':
         # flirSplit.drawHist(flirHot, flimask, vline=localMin, labelName='Local Minimum', savePath=savePath)
 
 
-        flirSplit.saveCmap(normalObject, hotObject, flimask, pltSavepath = None)
+        # flirSplit.saveCmap(normalObject, hotObject, flimask, pltSavepath = None)
+        flirSplit.deviation_comparison(normalObject, hotObject, flimask)
 
-        # break
+        break
         
 
 
